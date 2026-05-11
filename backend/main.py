@@ -5,22 +5,25 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
-from app import (
+from rbqm.config import (
     ACTION_LOG_LABELS,
+    DOMAIN_FIELDS,
     DOMAIN_LABELS,
-    KRI_METRIC_KEYS,
     METRIC_LABELS,
     SIGNAL_LABELS,
+)
+from rbqm.demo import generate_demo_data
+from rbqm.enrichment import enrich_tables
+from rbqm.export import make_excel_export
+from rbqm.ingestion import preview_uploaded_files, read_uploaded_files
+from rbqm.metrics import compute_metrics
+from rbqm.models import (
+    KRI_METRIC_KEYS,
     Thresholds,
-    compute_metrics,
-    enrich_tables,
-    generate_demo_data,
-    make_excel_export,
-    read_uploaded_files,
 )
 
 
@@ -157,15 +160,8 @@ def build_state(thresholds: Thresholds) -> dict[str, Any]:
     ]
 
     fields = [
-        {"domain": "受试者", "fields": ["subject_id", "site_id", "country", "status", "enrolled_date", "randomized_date"]},
-        {"domain": "访视 / EDC", "fields": ["subject_id", "site_id", "visit_date", "data_entry_date", "form_status"]},
-        {"domain": "Queries", "fields": ["subject_id", "site_id", "query_status", "opened_date", "closed_date", "age_days"]},
-        {"domain": "AE / SAE", "fields": ["subject_id", "site_id", "serious", "dlt", "ctcae_grade", "severity", "outcome", "start_date"]},
-        {"domain": "给药 / 剂量调整", "fields": ["subject_id", "site_id", "dose_level", "dose_modified", "modification_reason", "administration_date"]},
-        {"domain": "PK / PD采样", "fields": ["subject_id", "site_id", "timepoint", "scheduled_sample_time", "actual_sample_time", "window_deviation"]},
-        {"domain": "肿瘤评估", "fields": ["subject_id", "site_id", "scheduled_assessment_date", "actual_assessment_date", "response"]},
-        {"domain": "实验室", "fields": ["subject_id", "site_id", "result", "lln", "uln", "reviewed"]},
-        {"domain": "方案偏离", "fields": ["subject_id", "site_id", "deviation_type", "severity", "status", "deviation_date"]},
+        {"domain": DOMAIN_LABELS.get(domain, domain), "fields": DOMAIN_FIELDS[domain]}
+        for domain in DOMAIN_LABELS
     ]
 
     metrics_zh = metrics.rename(columns=METRIC_LABELS)
@@ -199,16 +195,41 @@ def get_state(thresholds: Thresholds = Depends(thresholds_from_query)) -> dict[s
 
 
 @app.post("/api/upload")
-async def upload(files: list[UploadFile] = File(...), thresholds: Thresholds = Depends(thresholds_from_query)) -> dict[str, Any]:
+async def upload(
+    files: list[UploadFile] = File(...),
+    mapping_config: str | None = Form(None),
+    thresholds: Thresholds = Depends(thresholds_from_query),
+) -> dict[str, Any]:
     global current_tables, current_raw_tables, using_demo_data
     memory_files = [MemoryUpload(upload.filename or "upload", await upload.read()) for upload in files]
-    loaded_tables, raw_tables = read_uploaded_files(memory_files)
+    try:
+        loaded_tables, raw_tables = read_uploaded_files(memory_files, mapping_config)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not loaded_tables:
         raise HTTPException(status_code=400, detail="未识别到已知数据域，请检查文件名或工作表名称。")
     current_tables = loaded_tables
     current_raw_tables = raw_tables
     using_demo_data = False
     return build_state(thresholds)
+
+
+@app.post("/api/upload/preview")
+async def upload_preview(files: list[UploadFile] = File(...)) -> dict[str, Any]:
+    memory_files = [MemoryUpload(upload.filename or "upload", await upload.read()) for upload in files]
+    try:
+        return preview_uploaded_files(memory_files)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/upload/commit")
+async def upload_commit(
+    files: list[UploadFile] = File(...),
+    mapping_config: str = Form(...),
+    thresholds: Thresholds = Depends(thresholds_from_query),
+) -> dict[str, Any]:
+    return await upload(files=files, mapping_config=mapping_config, thresholds=thresholds)
 
 
 @app.post("/api/demo")

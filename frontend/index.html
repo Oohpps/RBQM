@@ -135,6 +135,27 @@
                 </div>
               </div>
 
+              <section id="mappingWizard" class="mapping-wizard hidden" aria-live="polite">
+                <div class="mapping-header">
+                  <div>
+                    <div class="card-title" data-i18n="mapping.title">字段映射向导</div>
+                    <p data-i18n="mapping.subtitle">先预览上传文件，再明确指定每个数据集的数据域和字段。</p>
+                  </div>
+                  <button id="mappingCancelButton" class="secondary-button" type="button" data-i18n="mapping.cancel">取消</button>
+                </div>
+                <div class="wizard-steps">
+                  <span class="wizard-step active" data-step-label="1" data-i18n="mapping.step1">1 数据域</span>
+                  <span class="wizard-step" data-step-label="2" data-i18n="mapping.step2">2 字段</span>
+                  <span class="wizard-step" data-step-label="3" data-i18n="mapping.step3">3 确认</span>
+                </div>
+                <div id="mappingWizardBody" class="mapping-body"></div>
+                <div class="mapping-actions">
+                  <button id="mappingBackButton" class="secondary-button" type="button" data-i18n="mapping.back">上一步</button>
+                  <button id="mappingNextButton" class="export-button" type="button" data-i18n="mapping.next">下一步</button>
+                  <button id="mappingCommitButton" class="export-button hidden" type="button" data-i18n="mapping.commit">确认导入</button>
+                </div>
+              </section>
+
               <div class="data-card">
                 <div class="card-title" data-i18n="cards.domain">已识别的数据域</div>
                 <div class="table-wrap">
@@ -198,6 +219,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=20260511-4"></script>
+    <script type="module" src="./app.js?v=20260511-4"></script>
   </body>
 </html>

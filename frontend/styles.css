@@ -923,6 +923,209 @@ th.number {
   cursor: pointer;
 }
 
+.secondary-button {
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #24324a;
+  cursor: pointer;
+}
+
+.mapping-wizard {
+  margin-top: 30px;
+  border: 1px solid #c9d7ef;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.mapping-header,
+.mapping-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  background: #f9fbff;
+}
+
+.mapping-header .card-title {
+  padding: 0;
+  min-height: 0;
+  background: transparent;
+}
+
+.mapping-header p {
+  margin: 6px 0 0;
+  color: #667085;
+  font-size: 13px;
+}
+
+.wizard-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid #e9edf5;
+  border-bottom: 1px solid #e9edf5;
+  background: #fff;
+}
+
+.wizard-step {
+  padding: 12px 18px;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.wizard-step.active {
+  color: #0b66e4;
+  background: #eef5ff;
+}
+
+.mapping-body {
+  padding: 18px 22px 22px;
+}
+
+.mapping-table {
+  display: grid;
+  gap: 12px;
+}
+
+.mapping-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 16px;
+  align-items: start;
+  padding: 14px;
+  border: 1px solid #e1e7f2;
+  border-radius: 8px;
+}
+
+.mapping-source {
+  color: #071329;
+  font-weight: 800;
+  word-break: break-word;
+}
+
+.mapping-meta {
+  margin-top: 4px;
+  color: #667085;
+  font-size: 13px;
+}
+
+.mapping-chips {
+  margin-top: 10px;
+}
+
+.mapping-chips span {
+  display: inline-block;
+  margin: 0 5px 6px 0;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: #edf2f7;
+  color: #334155;
+  font-family: Consolas, "SFMono-Regular", monospace;
+  font-size: 12px;
+}
+
+.mapping-row label,
+.field-map-row {
+  display: grid;
+  gap: 6px;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mapping-row select,
+.field-map-row select {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #071329;
+}
+
+.field-map-card {
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid #e1e7f2;
+  border-radius: 8px;
+}
+
+.field-map-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  margin-top: 14px;
+}
+
+.field-map-row span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.field-map-row strong {
+  color: #071329;
+  font-family: Consolas, "SFMono-Regular", monospace;
+  font-size: 13px;
+}
+
+.field-map-row small {
+  color: #667085;
+}
+
+.mapping-confirm {
+  display: grid;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid #b7e4c7;
+  border-radius: 8px;
+  background: #f0fff4;
+  color: #064e3b;
+}
+
+.mapping-confirm.has-warnings {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.mapping-confirm p {
+  margin: 0 0 6px;
+}
+
+.mapping-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.mapping-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.mapping-summary span {
+  color: #475569;
+}
+
+.mapping-empty {
+  padding: 20px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #667085;
+  text-align: center;
+}
+
 .content {
   min-width: 0;
   padding: 28px 32px 42px 32px;
@@ -1019,6 +1222,9 @@ body[data-theme="dark"] .threshold-resize-handle {
 body[data-theme="dark"] .topbar,
 body[data-theme="dark"] .data-card,
 body[data-theme="dark"] .fields-card,
+body[data-theme="dark"] .mapping-wizard,
+body[data-theme="dark"] .mapping-row,
+body[data-theme="dark"] .field-map-card,
 body[data-theme="dark"] .metric-card,
 body[data-theme="dark"] .settings-menu,
 body[data-theme="dark"] .threshold-control {
@@ -1028,8 +1234,19 @@ body[data-theme="dark"] .threshold-control {
 
 body[data-theme="dark"] .data-card .card-title,
 body[data-theme="dark"] .fields-card summary,
+body[data-theme="dark"] .mapping-header,
+body[data-theme="dark"] .mapping-actions,
 body[data-theme="dark"] th {
   background: #162033;
+}
+
+body[data-theme="dark"] .wizard-steps,
+body[data-theme="dark"] .mapping-row select,
+body[data-theme="dark"] .field-map-row select,
+body[data-theme="dark"] .secondary-button {
+  background: #111827;
+  border-color: #26344f;
+  color: #e5edf8;
 }
 
 body[data-theme="dark"] table,
@@ -1101,6 +1318,8 @@ body[data-theme="dark"] td,
 body[data-theme="dark"] .threshold-label,
 body[data-theme="dark"] .threshold-master-title,
 body[data-theme="dark"] .metric-value,
+body[data-theme="dark"] .mapping-source,
+body[data-theme="dark"] .field-map-row strong,
 body[data-theme="dark"] .info-banner,
 body[data-theme="dark"] .sample-toggle,
 body[data-theme="dark"] .upload-panel h3 {
@@ -1109,10 +1328,22 @@ body[data-theme="dark"] .upload-panel h3 {
 
 body[data-theme="dark"] .settings-label,
 body[data-theme="dark"] .threshold-master-note,
+body[data-theme="dark"] .mapping-header p,
+body[data-theme="dark"] .mapping-meta,
+body[data-theme="dark"] .field-map-row small,
 body[data-theme="dark"] .metric-label,
 body[data-theme="dark"] .upload-panel p,
 body[data-theme="dark"] .segmented-control button {
   color: #9aa8bd;
+}
+
+body[data-theme="dark"] .mapping-chips span {
+  background: #1c2b46;
+  color: #d9e4f5;
+}
+
+body[data-theme="dark"] .wizard-step.active {
+  background: #182842;
 }
 
 body[data-theme="dark"] .top-tab:hover,
@@ -1171,5 +1402,19 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
 
   .top-tabs {
     gap: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .mapping-row,
+  .field-map-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mapping-header,
+  .mapping-actions,
+  .mapping-summary div {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
