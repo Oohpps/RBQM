@@ -53,6 +53,12 @@ const scoreColumnsByMetric = {
 let kriEnabled = true;
 let currentState = null;
 let refreshTimer = null;
+const thresholdRailWidth = {
+  default: 352,
+  min: 280,
+  max: 560,
+  storageKey: "rbqm.thresholdRailWidth",
+};
 
 function mountIcons() {
   document.querySelectorAll("[data-icon]").forEach((node) => {
@@ -272,6 +278,78 @@ function activateTab(tab) {
   });
 }
 
+function clampThresholdRailWidth(width) {
+  return Math.min(thresholdRailWidth.max, Math.max(thresholdRailWidth.min, Math.round(width)));
+}
+
+function setThresholdRailWidth(width, persist = true) {
+  const workspace = document.querySelector(".workspace");
+  const handle = document.getElementById("thresholdResizeHandle");
+  if (!workspace) return;
+  const nextWidth = clampThresholdRailWidth(width);
+  workspace.style.setProperty("--threshold-rail-width", `${nextWidth}px`);
+  if (handle) {
+    handle.setAttribute("aria-valuemin", String(thresholdRailWidth.min));
+    handle.setAttribute("aria-valuemax", String(thresholdRailWidth.max));
+    handle.setAttribute("aria-valuenow", String(nextWidth));
+  }
+  if (persist) {
+    localStorage.setItem(thresholdRailWidth.storageKey, String(nextWidth));
+  }
+}
+
+function initThresholdRailResize() {
+  const workspace = document.querySelector(".workspace");
+  const handle = document.getElementById("thresholdResizeHandle");
+  if (!workspace || !handle) return;
+
+  const savedWidth = Number(localStorage.getItem(thresholdRailWidth.storageKey));
+  setThresholdRailWidth(Number.isFinite(savedWidth) && savedWidth > 0 ? savedWidth : thresholdRailWidth.default, false);
+
+  const widthFromPointer = (clientX) => {
+    const rect = workspace.getBoundingClientRect();
+    return clientX - rect.left;
+  };
+
+  handle.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+    document.body.classList.add("threshold-resizing");
+  });
+
+  handle.addEventListener("pointermove", (event) => {
+    if (!document.body.classList.contains("threshold-resizing")) return;
+    setThresholdRailWidth(widthFromPointer(event.clientX));
+  });
+
+  const stopResize = () => {
+    document.body.classList.remove("threshold-resizing");
+  };
+  handle.addEventListener("pointerup", stopResize);
+  handle.addEventListener("pointercancel", stopResize);
+
+  handle.addEventListener("dblclick", () => {
+    setThresholdRailWidth(thresholdRailWidth.default);
+  });
+
+  handle.addEventListener("keydown", (event) => {
+    const current = Number(handle.getAttribute("aria-valuenow")) || thresholdRailWidth.default;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      setThresholdRailWidth(current - 16);
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      setThresholdRailWidth(current + 16);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setThresholdRailWidth(thresholdRailWidth.min);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setThresholdRailWidth(thresholdRailWidth.max);
+    }
+  });
+}
+
 function bindEvents() {
   const sidebarToggle = document.getElementById("sidebarToggle");
   if (sidebarToggle) sidebarToggle.addEventListener("click", () => {
@@ -301,6 +379,7 @@ function bindEvents() {
 
 mountIcons();
 renderThresholds();
+initThresholdRailResize();
 bindEvents();
 loadState().catch((error) => {
   console.error(error);
