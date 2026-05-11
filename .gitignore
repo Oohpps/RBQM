@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+.idea/
+.vscode/
+
+*.zip
+*.xlsx
+*.xls
+*.csv
+
+.DS_Store
+Thumbs.db

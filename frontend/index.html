@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RBQM</title>
+    <link rel="stylesheet" href="./styles.css?v=20260511-2" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <img class="brand-logo" src="./assets/rbqm-logo.png" alt="RBQM logo" />
+          <div>
+            <div class="brand-title sidebar-text">Clinical Risk</div>
+            <div class="brand-subtitle sidebar-text">Quality Management</div>
+          </div>
+        </div>
+
+        <nav class="side-nav" aria-label="主菜单">
+          <button id="sidebarToggle" class="nav-collapse-button" type="button" aria-label="收起左侧菜单">
+            <span data-icon="collapseLeft"></span>
+            <span class="sidebar-text">收起菜单</span>
+          </button>
+          <a class="side-item muted" href="#">
+            <span class="side-icon" data-icon="grid"></span>
+            <span class="sidebar-text">Dashboard</span>
+          </a>
+          <a class="side-item muted" href="#">
+            <span class="side-icon" data-icon="lab"></span>
+            <span class="sidebar-text">Studies</span>
+          </a>
+          <a class="side-item active" href="#">
+            <span class="side-icon" data-icon="sliders"></span>
+            <span class="sidebar-text">Risk Thresholds</span>
+          </a>
+          <a class="side-item muted" href="#">
+            <span class="side-icon" data-icon="pin"></span>
+            <span class="sidebar-text">Sites</span>
+          </a>
+          <a class="side-item muted" href="#">
+            <span class="side-icon" data-icon="chart"></span>
+            <span class="sidebar-text">Reports</span>
+          </a>
+        </nav>
+
+        <section class="upload-panel">
+          <h3 class="sidebar-text">上传临床研究数据</h3>
+          <label class="upload-button">
+            <span class="button-icon" data-icon="upload"></span>
+            <span class="sidebar-text">Upload Trial Data</span>
+            <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" multiple />
+          </label>
+          <p class="sidebar-text">200MB per file • CSV, XLSX, XLS</p>
+        </section>
+
+        <label class="sample-toggle">
+          <span class="sidebar-text">使用示例数据</span>
+          <input id="sampleToggle" type="checkbox" checked />
+          <span class="toggle-track"></span>
+        </label>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="topbar-left">
+            <div class="topbar-logo">RBQM</div>
+            <nav class="top-tabs" aria-label="子菜单">
+              <button class="top-tab active" data-tab="import">Data Import</button>
+              <button class="top-tab" data-tab="overview">Study Overview</button>
+              <button class="top-tab" data-tab="kri">KRI Dashboard</button>
+              <button class="top-tab" data-tab="ranking">Site Ranking</button>
+              <button class="top-tab" data-tab="details">Risk Details</button>
+              <button class="top-tab" data-tab="actions">Action Tracking</button>
+            </nav>
+          </div>
+          <div class="top-actions">
+            <button class="icon-button" aria-label="通知"><span data-icon="bell"></span></button>
+            <button class="deploy-button">Deploy</button>
+            <button class="icon-button" aria-label="更多"><span data-icon="more"></span></button>
+          </div>
+        </header>
+
+        <section class="workspace">
+          <aside class="threshold-rail">
+            <section class="threshold-panel">
+              <div class="threshold-header">
+                <h3>KRI阈值设置</h3>
+              </div>
+              <div id="thresholdControls" class="threshold-controls"></div>
+            </section>
+          </aside>
+
+          <section class="content">
+            <section class="tab-page active" id="tab-import">
+              <h1>数据导入</h1>
+              <div class="info-banner">
+                <span data-icon="info"></span>
+                <span id="dataHint">当前使用示例数据。可在侧边栏上传CSV/XLSX文件查看自己的研究数据。</span>
+              </div>
+
+              <div id="rawUploadCard" class="data-card hidden">
+                <div class="card-title">已上传的原始数据集</div>
+                <div class="table-wrap">
+                  <table id="rawSummaryTable"></table>
+                </div>
+              </div>
+
+              <div class="data-card">
+                <div class="card-title">已识别的数据域</div>
+                <div class="table-wrap">
+                  <table id="domainTable"></table>
+                </div>
+              </div>
+
+              <details class="fields-card" open>
+                <summary>
+                  <span>支持的常见数据域与字段</span>
+                  <span data-icon="chevron"></span>
+                </summary>
+                <div id="fieldList" class="field-list"></div>
+              </details>
+            </section>
+
+            <section class="tab-page" id="tab-overview">
+              <h1>研究总览</h1>
+              <div id="overviewCards" class="metric-grid"></div>
+            </section>
+
+            <section class="tab-page" id="tab-kri">
+              <h1>KRI看板</h1>
+              <div class="data-card">
+                <div class="card-title">中心KRI概览</div>
+                <div class="table-wrap">
+                  <table id="metricsTable"></table>
+                </div>
+              </div>
+            </section>
+
+            <section class="tab-page" id="tab-ranking">
+              <h1>中心风险排序</h1>
+              <div class="data-card">
+                <div class="table-wrap">
+                  <table id="rankingTable"></table>
+                </div>
+              </div>
+            </section>
+
+            <section class="tab-page" id="tab-details">
+              <h1>风险信号详情</h1>
+              <div class="data-card">
+                <div class="table-wrap">
+                  <table id="signalsTable"></table>
+                </div>
+              </div>
+            </section>
+
+            <section class="tab-page" id="tab-actions">
+              <h1>行动跟踪</h1>
+              <div class="data-card">
+                <div class="table-wrap">
+                  <table id="actionsTable"></table>
+                </div>
+              </div>
+              <button id="exportButton" class="export-button">导出RBQM审查包</button>
+            </section>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js?v=20260511-2"></script>
+  </body>
+</html>
