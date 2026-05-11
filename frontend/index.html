@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>RBQM</title>
-    <link rel="stylesheet" href="./styles.css?v=20260511-3" />
+    <link rel="stylesheet" href="./styles.css?v=20260511-4" />
   </head>
   <body>
     <div class="app-shell">
@@ -20,42 +20,42 @@
         <nav class="side-nav" aria-label="主菜单">
           <button id="sidebarToggle" class="nav-collapse-button" type="button" aria-label="收起左侧菜单">
             <span data-icon="collapseLeft"></span>
-            <span class="sidebar-text">收起菜单</span>
+            <span class="sidebar-text" data-i18n="nav.collapse">收起菜单</span>
           </button>
           <a class="side-item muted" href="#">
             <span class="side-icon" data-icon="grid"></span>
-            <span class="sidebar-text">Dashboard</span>
+            <span class="sidebar-text" data-i18n="nav.dashboard">Dashboard</span>
           </a>
           <a class="side-item muted" href="#">
             <span class="side-icon" data-icon="lab"></span>
-            <span class="sidebar-text">Studies</span>
+            <span class="sidebar-text" data-i18n="nav.studies">Studies</span>
           </a>
           <a class="side-item active" href="#">
             <span class="side-icon" data-icon="sliders"></span>
-            <span class="sidebar-text">Risk Thresholds</span>
+            <span class="sidebar-text" data-i18n="nav.thresholds">Risk Thresholds</span>
           </a>
           <a class="side-item muted" href="#">
             <span class="side-icon" data-icon="pin"></span>
-            <span class="sidebar-text">Sites</span>
+            <span class="sidebar-text" data-i18n="nav.sites">Sites</span>
           </a>
           <a class="side-item muted" href="#">
             <span class="side-icon" data-icon="chart"></span>
-            <span class="sidebar-text">Reports</span>
+            <span class="sidebar-text" data-i18n="nav.reports">Reports</span>
           </a>
         </nav>
 
         <section class="upload-panel">
-          <h3 class="sidebar-text">上传临床研究数据</h3>
+          <h3 class="sidebar-text" data-i18n="upload.title">上传临床研究数据</h3>
           <label class="upload-button">
             <span class="button-icon" data-icon="upload"></span>
-            <span class="sidebar-text">Upload Trial Data</span>
+            <span class="sidebar-text" data-i18n="upload.button">Upload Trial Data</span>
             <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" multiple />
           </label>
-          <p class="sidebar-text">200MB per file • CSV, XLSX, XLS</p>
+          <p class="sidebar-text" data-i18n="upload.note">200MB per file • CSV, XLSX, XLS</p>
         </section>
 
         <label class="sample-toggle">
-          <span class="sidebar-text">使用示例数据</span>
+          <span class="sidebar-text" data-i18n="sample.toggle">使用示例数据</span>
           <input id="sampleToggle" type="checkbox" checked />
           <span class="toggle-track"></span>
         </label>
@@ -66,18 +66,39 @@
           <div class="topbar-left">
             <div class="topbar-logo">RBQM</div>
             <nav class="top-tabs" aria-label="子菜单">
-              <button class="top-tab active" data-tab="import">Data Import</button>
-              <button class="top-tab" data-tab="overview">Study Overview</button>
-              <button class="top-tab" data-tab="kri">KRI Dashboard</button>
-              <button class="top-tab" data-tab="ranking">Site Ranking</button>
-              <button class="top-tab" data-tab="details">Risk Details</button>
-              <button class="top-tab" data-tab="actions">Action Tracking</button>
+              <button class="top-tab active" data-tab="import" data-i18n="tabs.import">数据接入</button>
+              <button class="top-tab" data-tab="overview" data-i18n="tabs.overview">研究概览</button>
+              <button class="top-tab" data-tab="kri" data-i18n="tabs.kri">KRI监测</button>
+              <button class="top-tab" data-tab="ranking" data-i18n="tabs.ranking">中心风险</button>
+              <button class="top-tab" data-tab="details" data-i18n="tabs.details">信号详情</button>
+              <button class="top-tab" data-tab="actions" data-i18n="tabs.actions">行动闭环</button>
             </nav>
           </div>
           <div class="top-actions">
             <button class="icon-button" aria-label="通知"><span data-icon="bell"></span></button>
-            <button class="deploy-button">Deploy</button>
-            <button class="icon-button" aria-label="更多"><span data-icon="more"></span></button>
+            <button class="deploy-button" data-i18n="actions.deploy">Deploy</button>
+            <div class="settings-wrap">
+              <button id="settingsButton" class="icon-button" type="button" aria-label="更多设置" aria-expanded="false" aria-controls="settingsMenu">
+                <span data-icon="more"></span>
+              </button>
+              <div id="settingsMenu" class="settings-menu hidden">
+                <div class="settings-title" data-i18n="settings.title">设置</div>
+                <div class="settings-group">
+                  <div class="settings-label" data-i18n="settings.language">语言</div>
+                  <div class="segmented-control" role="group" aria-label="语言">
+                    <button type="button" data-lang-option="zh">中文</button>
+                    <button type="button" data-lang-option="en">EN</button>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <div class="settings-label" data-i18n="settings.theme">主题</div>
+                  <div class="segmented-control" role="group" aria-label="主题">
+                    <button type="button" data-theme-option="light">Light</button>
+                    <button type="button" data-theme-option="dark">Dark</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -85,7 +106,7 @@
           <aside class="threshold-rail">
             <section class="threshold-panel">
               <div class="threshold-header">
-                <h3>KRI阈值设置</h3>
+                <h3 data-i18n="threshold.title">KRI阈值设置</h3>
               </div>
               <div id="thresholdControls" class="threshold-controls"></div>
             </section>
@@ -101,21 +122,21 @@
 
           <section class="content">
             <section class="tab-page active" id="tab-import">
-              <h1>数据导入</h1>
+              <h1 data-i18n="pages.import">数据导入</h1>
               <div class="info-banner">
                 <span data-icon="info"></span>
                 <span id="dataHint">当前使用示例数据。可在侧边栏上传CSV/XLSX文件查看自己的研究数据。</span>
               </div>
 
               <div id="rawUploadCard" class="data-card hidden">
-                <div class="card-title">已上传的原始数据集</div>
+                <div class="card-title" data-i18n="cards.raw">已上传的原始数据集</div>
                 <div class="table-wrap">
                   <table id="rawSummaryTable"></table>
                 </div>
               </div>
 
               <div class="data-card">
-                <div class="card-title">已识别的数据域</div>
+                <div class="card-title" data-i18n="cards.domain">已识别的数据域</div>
                 <div class="table-wrap">
                   <table id="domainTable"></table>
                 </div>
@@ -123,7 +144,7 @@
 
               <details class="fields-card" open>
                 <summary>
-                  <span>支持的常见数据域与字段</span>
+                  <span data-i18n="cards.fields">支持的常见数据域与字段</span>
                   <span data-icon="chevron"></span>
                 </summary>
                 <div id="fieldList" class="field-list"></div>
@@ -131,14 +152,14 @@
             </section>
 
             <section class="tab-page" id="tab-overview">
-              <h1>研究总览</h1>
+              <h1 data-i18n="pages.overview">研究总览</h1>
               <div id="overviewCards" class="metric-grid"></div>
             </section>
 
             <section class="tab-page" id="tab-kri">
-              <h1>KRI看板</h1>
+              <h1 data-i18n="pages.kri">KRI看板</h1>
               <div class="data-card">
-                <div class="card-title">中心KRI概览</div>
+                <div class="card-title" data-i18n="cards.kri">中心KRI概览</div>
                 <div class="table-wrap">
                   <table id="metricsTable"></table>
                 </div>
@@ -146,7 +167,7 @@
             </section>
 
             <section class="tab-page" id="tab-ranking">
-              <h1>中心风险排序</h1>
+              <h1 data-i18n="pages.ranking">中心风险排序</h1>
               <div class="data-card">
                 <div class="table-wrap">
                   <table id="rankingTable"></table>
@@ -155,7 +176,7 @@
             </section>
 
             <section class="tab-page" id="tab-details">
-              <h1>风险信号详情</h1>
+              <h1 data-i18n="pages.details">风险信号详情</h1>
               <div class="data-card">
                 <div class="table-wrap">
                   <table id="signalsTable"></table>
@@ -164,19 +185,19 @@
             </section>
 
             <section class="tab-page" id="tab-actions">
-              <h1>行动跟踪</h1>
+              <h1 data-i18n="pages.actions">行动跟踪</h1>
               <div class="data-card">
                 <div class="table-wrap">
                   <table id="actionsTable"></table>
                 </div>
               </div>
-              <button id="exportButton" class="export-button">导出RBQM审查包</button>
+              <button id="exportButton" class="export-button" data-i18n="actions.export">导出RBQM审查包</button>
             </section>
           </section>
         </section>
       </main>
     </div>
 
-    <script src="./app.js?v=20260511-3"></script>
+    <script src="./app.js?v=20260511-4"></script>
   </body>
 </html>

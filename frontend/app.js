@@ -13,20 +13,20 @@ const icons = {
 };
 
 const thresholds = [
-  { key: "dlt_rate", label: "DLT发生率", min: 0.01, max: 1, step: 0.01, value: 0.1, decimals: 2 },
-  { key: "grade3_ae_rate", label: "≥3级AE发生率", min: 0.01, max: 2, step: 0.01, value: 0.2, decimals: 2 },
-  { key: "safety_issues_per_subject", label: "SAE随访/报告缺口", min: 0.01, max: 1, step: 0.01, value: 0.15, decimals: 2 },
-  { key: "dose_modification_rate", label: "毒性相关剂量调整率", min: 0.01, max: 2, step: 0.01, value: 0.2, decimals: 2 },
-  { key: "eligibility_deviation_rate", label: "入排标准偏离率", min: 0.01, max: 1, step: 0.01, value: 0.1, decimals: 2 },
-  { key: "pk_window_deviation_rate", label: "PK/PD采样窗偏离率", min: 0.01, max: 1, step: 0.01, value: 0.15, decimals: 2 },
-  { key: "tumor_assessment_issue_rate", label: "肿瘤评估缺失/延迟率", min: 0.01, max: 1, step: 0.01, value: 0.2, decimals: 2 },
-  { key: "missing_rate", label: "关键数据缺失率", min: 0.01, max: 0.3, step: 0.01, value: 0.1, decimals: 2 },
-  { key: "late_entry_rate", label: "EDC延迟/未完成率", min: 0.01, max: 0.6, step: 0.01, value: 0.2, decimals: 2 },
-  { key: "avg_entry_delay_days", label: "平均录入延迟（天）", min: 1, max: 30, step: 1, value: 7, decimals: 2 },
-  { key: "open_queries_per_subject", label: "每受试者未关闭Query数", min: 0.1, max: 5, step: 0.1, value: 1.5, decimals: 2 },
-  { key: "avg_open_query_age_days", label: "未关闭Query平均龄期（天）", min: 1, max: 60, step: 1, value: 21, decimals: 2 },
-  { key: "lab_issues_per_subject", label: "未复核异常实验室率", min: 0.01, max: 1, step: 0.01, value: 0.2, decimals: 2 },
-  { key: "major_deviations_per_subject", label: "重大方案偏离率", min: 0.01, max: 1, step: 0.01, value: 0.1, decimals: 2 },
+  { key: "dlt_rate", label: { zh: "DLT发生率", en: "DLT Rate" }, group: { zh: "剂量安全", en: "Dose Safety" }, min: 0.01, max: 1, step: 0.01, value: 0.1, decimals: 2 },
+  { key: "grade3_ae_rate", label: { zh: "≥3级AE发生率", en: "Grade ≥3 AE Rate" }, group: { zh: "剂量安全", en: "Dose Safety" }, min: 0.01, max: 2, step: 0.01, value: 0.2, decimals: 2 },
+  { key: "safety_issues_per_subject", label: { zh: "SAE随访/报告缺口", en: "SAE Follow-up Gap" }, group: { zh: "安全复核", en: "Safety Review" }, min: 0.01, max: 1, step: 0.01, value: 0.15, decimals: 2 },
+  { key: "dose_modification_rate", label: { zh: "毒性相关剂量调整率", en: "Toxicity Dose Modification" }, group: { zh: "给药管理", en: "Dosing" }, min: 0.01, max: 2, step: 0.01, value: 0.2, decimals: 2 },
+  { key: "eligibility_deviation_rate", label: { zh: "入排标准偏离率", en: "Eligibility Deviation" }, group: { zh: "方案依从", en: "Protocol" }, min: 0.01, max: 1, step: 0.01, value: 0.1, decimals: 2 },
+  { key: "pk_window_deviation_rate", label: { zh: "PK/PD采样窗偏离率", en: "PK/PD Window Deviation" }, group: { zh: "PK/PD", en: "PK/PD" }, min: 0.01, max: 1, step: 0.01, value: 0.15, decimals: 2 },
+  { key: "tumor_assessment_issue_rate", label: { zh: "肿瘤评估缺失/延迟率", en: "Tumor Assessment Issue" }, group: { zh: "疗效评估", en: "Response" }, min: 0.01, max: 1, step: 0.01, value: 0.2, decimals: 2 },
+  { key: "missing_rate", label: { zh: "关键数据缺失率", en: "Critical Data Missing" }, group: { zh: "数据质量", en: "Data Quality" }, min: 0.01, max: 0.3, step: 0.01, value: 0.1, decimals: 2 },
+  { key: "late_entry_rate", label: { zh: "EDC延迟/未完成率", en: "Late / Incomplete EDC" }, group: { zh: "数据质量", en: "Data Quality" }, min: 0.01, max: 0.6, step: 0.01, value: 0.2, decimals: 2 },
+  { key: "avg_entry_delay_days", label: { zh: "平均录入延迟（天）", en: "Avg Entry Delay Days" }, group: { zh: "数据质量", en: "Data Quality" }, min: 1, max: 30, step: 1, value: 7, decimals: 2 },
+  { key: "open_queries_per_subject", label: { zh: "每受试者未关闭Query数", en: "Open Queries / Subject" }, group: { zh: "Query", en: "Query" }, min: 0.1, max: 5, step: 0.1, value: 1.5, decimals: 2 },
+  { key: "avg_open_query_age_days", label: { zh: "未关闭Query平均龄期（天）", en: "Avg Open Query Age" }, group: { zh: "Query", en: "Query" }, min: 1, max: 60, step: 1, value: 21, decimals: 2 },
+  { key: "lab_issues_per_subject", label: { zh: "未复核异常实验室率", en: "Unreviewed Lab Issue Rate" }, group: { zh: "实验室", en: "Labs" }, min: 0.01, max: 1, step: 0.01, value: 0.2, decimals: 2 },
+  { key: "major_deviations_per_subject", label: { zh: "重大方案偏离率", en: "Major Deviation Rate" }, group: { zh: "方案依从", en: "Protocol" }, min: 0.01, max: 1, step: 0.01, value: 0.1, decimals: 2 },
 ];
 
 thresholds.forEach((item) => {
@@ -53,6 +53,8 @@ const scoreColumnsByMetric = {
 let kriEnabled = true;
 let currentState = null;
 let refreshTimer = null;
+let currentLanguage = localStorage.getItem("rbqm.language") || "zh";
+let currentTheme = localStorage.getItem("rbqm.theme") || "light";
 const thresholdRailWidth = {
   default: 352,
   min: 280,
@@ -60,10 +62,129 @@ const thresholdRailWidth = {
   storageKey: "rbqm.thresholdRailWidth",
 };
 
+const translations = {
+  zh: {
+    "nav.collapse": "收起菜单",
+    "nav.dashboard": "看板",
+    "nav.studies": "研究",
+    "nav.thresholds": "风险阈值",
+    "nav.sites": "中心",
+    "nav.reports": "报告",
+    "upload.title": "上传临床研究数据",
+    "upload.button": "上传研究数据",
+    "upload.note": "200MB per file • CSV, XLSX, XLS",
+    "sample.toggle": "使用示例数据",
+    "tabs.import": "数据接入",
+    "tabs.overview": "研究概览",
+    "tabs.kri": "KRI监测",
+    "tabs.ranking": "中心风险",
+    "tabs.details": "信号详情",
+    "tabs.actions": "行动闭环",
+    "actions.deploy": "部署",
+    "actions.export": "导出RBQM审查包",
+    "settings.title": "设置",
+    "settings.language": "语言",
+    "settings.theme": "主题",
+    "threshold.title": "KRI阈值设置",
+    "threshold.master": "启用KRI阈值评估",
+    "threshold.enabled": "已启用 {count}/{total} 项指标",
+    "threshold.disabled": "已关闭，风险评分与信号暂停计算",
+    "pages.import": "数据导入",
+    "pages.overview": "研究总览",
+    "pages.kri": "KRI看板",
+    "pages.ranking": "中心风险排序",
+    "pages.details": "风险信号详情",
+    "pages.actions": "行动跟踪",
+    "cards.raw": "已上传的原始数据集",
+    "cards.domain": "已识别的数据域",
+    "cards.fields": "支持的常见数据域与字段",
+    "cards.kri": "中心KRI概览",
+    "hint.demo": "当前使用示例数据。可在侧边栏上传CSV/XLSX文件查看自己的研究数据。",
+    "hint.uploaded": "当前使用已上传的临床研究数据。",
+    "empty": "暂无数据",
+    "alert.load": "RBQM数据加载失败，请确认FastAPI服务已启动。",
+    "alert.upload": "上传失败，未识别到可用数据域。",
+  },
+  en: {
+    "nav.collapse": "Collapse Menu",
+    "nav.dashboard": "Dashboard",
+    "nav.studies": "Studies",
+    "nav.thresholds": "Risk Thresholds",
+    "nav.sites": "Sites",
+    "nav.reports": "Reports",
+    "upload.title": "Upload Clinical Trial Data",
+    "upload.button": "Upload Trial Data",
+    "upload.note": "200MB per file • CSV, XLSX, XLS",
+    "sample.toggle": "Use Demo Data",
+    "tabs.import": "Data Import",
+    "tabs.overview": "Study Overview",
+    "tabs.kri": "KRI Dashboard",
+    "tabs.ranking": "Site Ranking",
+    "tabs.details": "Risk Details",
+    "tabs.actions": "Action Tracking",
+    "actions.deploy": "Deploy",
+    "actions.export": "Export RBQM Package",
+    "settings.title": "Settings",
+    "settings.language": "Language",
+    "settings.theme": "Theme",
+    "threshold.title": "KRI Thresholds",
+    "threshold.master": "Enable KRI Threshold Scoring",
+    "threshold.enabled": "{count}/{total} indicators enabled",
+    "threshold.disabled": "Disabled. Risk scoring and signals are paused.",
+    "pages.import": "Data Import",
+    "pages.overview": "Study Overview",
+    "pages.kri": "KRI Dashboard",
+    "pages.ranking": "Site Risk Ranking",
+    "pages.details": "Risk Signal Details",
+    "pages.actions": "Action Tracking",
+    "cards.raw": "Uploaded Raw Datasets",
+    "cards.domain": "Recognized Data Domains",
+    "cards.fields": "Supported Common Domains and Fields",
+    "cards.kri": "Site KRI Overview",
+    "hint.demo": "Demo data is currently in use. Upload CSV/XLSX files from the sidebar to analyze your study data.",
+    "hint.uploaded": "Uploaded clinical study data is currently in use.",
+    "empty": "No data",
+    "alert.load": "RBQM data failed to load. Please confirm the FastAPI service is running.",
+    "alert.upload": "Upload failed. No usable data domain was recognized.",
+  },
+};
+
 function mountIcons() {
   document.querySelectorAll("[data-icon]").forEach((node) => {
     const icon = icons[node.dataset.icon];
     if (icon) node.innerHTML = icon;
+  });
+}
+
+function t(key, values = {}) {
+  let text = translations[currentLanguage]?.[key] || translations.zh[key] || key;
+  Object.entries(values).forEach(([name, value]) => {
+    text = text.replace(`{${name}}`, value);
+  });
+  return text;
+}
+
+function localized(value) {
+  if (typeof value === "string") return value;
+  return value[currentLanguage] || value.zh || "";
+}
+
+function applyLanguage() {
+  document.documentElement.lang = currentLanguage === "zh" ? "zh-CN" : "en";
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    node.textContent = t(node.dataset.i18n);
+  });
+  document.querySelectorAll("[data-lang-option]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.langOption === currentLanguage);
+  });
+  renderThresholds();
+  if (currentState) renderState(currentState);
+}
+
+function applyTheme() {
+  document.body.dataset.theme = currentTheme;
+  document.querySelectorAll("[data-theme-option]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.themeOption === currentTheme);
   });
 }
 
@@ -88,8 +209,8 @@ function renderThresholds() {
   master.className = `threshold-master ${kriEnabled ? "" : "off"}`;
   master.innerHTML = `
     <div>
-      <div class="threshold-master-title">启用KRI阈值评估</div>
-      <div class="threshold-master-note">${kriEnabled ? `已启用 ${enabledCount}/${thresholds.length} 项指标` : "已关闭，风险评分与信号暂停计算"}</div>
+      <div class="threshold-master-title">${t("threshold.master")}</div>
+      <div class="threshold-master-note">${kriEnabled ? t("threshold.enabled", { count: enabledCount, total: thresholds.length }) : t("threshold.disabled")}</div>
     </div>
     <label class="switch-control" title="启用或关闭全部KRI阈值">
       <input type="checkbox" ${kriEnabled ? "checked" : ""} />
@@ -110,7 +231,8 @@ function renderThresholds() {
     block.innerHTML = `
       <div class="threshold-row">
         <div class="threshold-name">
-          <span>${item.label}</span>
+          <span class="threshold-chip">${localized(item.group)}</span>
+          <span class="threshold-label">${localized(item.label)}</span>
           <span class="threshold-value" id="value-${item.key}">${item.value.toFixed(item.decimals)}</span>
         </div>
         <label class="switch-control metric-switch" title="启用或关闭该KRI指标">
@@ -160,7 +282,7 @@ async function uploadFiles(files) {
   });
   if (!res.ok) {
     const payload = await res.json().catch(() => ({}));
-    alert(payload.detail || "上传失败，未识别到可用数据域。");
+    alert(payload.detail || t("alert.upload"));
     return;
   }
   currentState = await res.json();
@@ -177,8 +299,8 @@ async function resetDemo() {
 
 function renderState(state) {
   document.getElementById("dataHint").textContent = state.using_demo_data
-    ? "当前使用示例数据。可在侧边栏上传CSV/XLSX文件查看自己的研究数据。"
-    : "当前使用已上传的临床研究数据。";
+    ? t("hint.demo")
+    : t("hint.uploaded");
   document.getElementById("sampleToggle").checked = Boolean(state.using_demo_data);
 
   renderTable("domainTable", state.domain_summary, ["数据域", "行数", "列数", "已识别中心列", "已识别受试者列"]);
@@ -218,7 +340,7 @@ function renderTable(id, rows, preferredColumns = null, limit = null) {
   const sourceRows = id === "metricsTable" ? visibleMetricRows(rows) : rows;
   const data = limit ? sourceRows.slice(0, limit) : sourceRows;
   if (!data.length) {
-    table.innerHTML = '<tbody><tr><td>暂无数据</td></tr></tbody>';
+    table.innerHTML = `<tbody><tr><td>${t("empty")}</td></tr></tbody>`;
     return;
   }
   const columns = preferredColumns || Object.keys(data[0]);
@@ -375,13 +497,45 @@ function bindEvents() {
   if (exportButton) exportButton.addEventListener("click", () => {
     window.location.href = `/api/export?${thresholdParams().toString()}`;
   });
+
+  const settingsButton = document.getElementById("settingsButton");
+  const settingsMenu = document.getElementById("settingsMenu");
+  if (settingsButton && settingsMenu) {
+    settingsButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const open = settingsMenu.classList.toggle("hidden");
+      settingsButton.setAttribute("aria-expanded", String(!open));
+    });
+    settingsMenu.addEventListener("click", (event) => event.stopPropagation());
+    document.addEventListener("click", () => {
+      settingsMenu.classList.add("hidden");
+      settingsButton.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  document.querySelectorAll("[data-lang-option]").forEach((button) => {
+    button.addEventListener("click", () => {
+      currentLanguage = button.dataset.langOption;
+      localStorage.setItem("rbqm.language", currentLanguage);
+      applyLanguage();
+    });
+  });
+
+  document.querySelectorAll("[data-theme-option]").forEach((button) => {
+    button.addEventListener("click", () => {
+      currentTheme = button.dataset.themeOption;
+      localStorage.setItem("rbqm.theme", currentTheme);
+      applyTheme();
+    });
+  });
 }
 
 mountIcons();
-renderThresholds();
+applyTheme();
+applyLanguage();
 initThresholdRailResize();
 bindEvents();
 loadState().catch((error) => {
   console.error(error);
-  alert("RBQM数据加载失败，请确认FastAPI服务已启动。");
+  alert(t("alert.load"));
 });
