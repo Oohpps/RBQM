@@ -29,6 +29,7 @@ from rbqm.models import (
 
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = ROOT / "frontend"
+FRONTEND_DIST_DIR = FRONTEND_DIR / "dist"
 
 DEFAULT_THRESHOLDS = Thresholds(
     missing_rate=0.10,
@@ -254,4 +255,4 @@ def export(thresholds: Thresholds = Depends(thresholds_from_query)) -> Response:
     )
 
 
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+app.mount("/", StaticFiles(directory=FRONTEND_DIST_DIR, html=True, check_dir=False), name="frontend")

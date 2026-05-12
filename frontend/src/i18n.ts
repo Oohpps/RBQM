@@ -1,4 +1,6 @@
-export const translations = {
+import type { Locale } from "./types";
+
+export const translations: Record<Locale, Record<string, string>> = {
   zh: {
     "nav.collapse": "收起菜单",
     "nav.dashboard": "看板",
@@ -8,7 +10,7 @@ export const translations = {
     "nav.reports": "报告",
     "upload.title": "上传临床研究数据",
     "upload.button": "上传研究数据",
-    "upload.note": "200MB per file • CSV, XLSX, XLS",
+    "upload.note": "200MB per file - CSV, XLSX, XLS",
     "sample.toggle": "使用示例数据",
     "tabs.import": "数据接入",
     "tabs.overview": "研究概览",
@@ -16,13 +18,13 @@ export const translations = {
     "tabs.ranking": "中心风险",
     "tabs.details": "信号详情",
     "tabs.actions": "行动闭环",
-    "actions.deploy": "部署",
+    "actions.deploy": "Deploy",
     "actions.export": "导出RBQM审查包",
     "settings.title": "设置",
     "settings.language": "语言",
     "settings.theme": "主题",
     "threshold.title": "KRI阈值设置",
-    "threshold.master": "启用KRI阈值评估",
+    "threshold.master": "启用KRI阈值评分",
     "threshold.enabled": "已启用 {count}/{total} 项指标",
     "threshold.disabled": "已关闭，风险评分与信号暂停计算",
     "pages.import": "数据导入",
@@ -72,7 +74,7 @@ export const translations = {
     "nav.reports": "Reports",
     "upload.title": "Upload Clinical Trial Data",
     "upload.button": "Upload Trial Data",
-    "upload.note": "200MB per file • CSV, XLSX, XLS",
+    "upload.note": "200MB per file - CSV, XLSX, XLS",
     "sample.toggle": "Use Demo Data",
     "tabs.import": "Data Import",
     "tabs.overview": "Study Overview",
@@ -129,3 +131,10 @@ export const translations = {
   },
 };
 
+export function translate(locale: Locale, key: string, values: Record<string, string | number> = {}): string {
+  let text = translations[locale]?.[key] || translations.zh[key] || key;
+  Object.entries(values).forEach(([name, value]) => {
+    text = text.replace(`{${name}}`, String(value));
+  });
+  return text;
+}
