@@ -210,12 +210,25 @@ input {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
+  color: rgba(113, 138, 190, 0.46);
 }
 
 .side-icon svg {
-  width: 26px;
-  height: 26px;
-  stroke-width: 2.25;
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.side-item:hover .side-icon {
+  color: rgba(92, 122, 184, 0.68);
+}
+
+.side-item.active .side-icon {
+  color: rgba(255, 255, 255, 0.94);
 }
 
 .threshold-panel h3,
@@ -587,6 +600,21 @@ input[type="range"]:disabled {
   background: transparent;
   color: #071329;
   cursor: pointer;
+}
+
+.icon-button svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.icon-button svg circle {
+  fill: currentColor;
+  stroke: none;
 }
 
 .deploy-button {
