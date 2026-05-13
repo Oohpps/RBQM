@@ -362,7 +362,7 @@ onBeforeUnmount(() => {
             </div>
           </section>
 
-          <section class="tab-page" :class="{ active: activeTab === 'ranking' }">
+          <section class="tab-page fill-table-page" :class="{ active: activeTab === 'ranking' }">
             <h1>{{ t("pages.ranking") }}</h1>
             <div class="data-card">
               <div class="table-wrap">
@@ -376,7 +376,7 @@ onBeforeUnmount(() => {
             </div>
           </section>
 
-          <section class="tab-page" :class="{ active: activeTab === 'details' }">
+          <section class="tab-page fill-table-page" :class="{ active: activeTab === 'details' }">
             <h1>{{ t("pages.details") }}</h1>
             <div class="data-card">
               <div class="table-wrap">
@@ -385,7 +385,7 @@ onBeforeUnmount(() => {
             </div>
           </section>
 
-          <section class="tab-page" :class="{ active: activeTab === 'actions' }">
+          <section class="tab-page fill-table-page" :class="{ active: activeTab === 'actions' }">
             <h1>{{ t("pages.actions") }}</h1>
             <div class="data-card">
               <div class="table-wrap">
