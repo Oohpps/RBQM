@@ -71,3 +71,19 @@ export interface MappingConfig {
 }
 
 export type MappingSelections = Record<string, SourceMapping>;
+
+export interface KriConfigRecord {
+  version: number;
+  is_active: boolean;
+  saved_at: string;
+  saved_by: string;
+  change_reason: string;
+  kri_enabled: boolean;
+  enabled_metrics: string[];
+  thresholds: Record<string, number>;
+}
+
+export interface KriConfigResponse {
+  active: KriConfigRecord;
+  versions: KriConfigRecord[];
+}

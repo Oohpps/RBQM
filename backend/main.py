@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from pydantic import BaseModel, Field
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
@@ -25,11 +26,13 @@ from rbqm.models import (
     KRI_METRIC_KEYS,
     Thresholds,
 )
+from rbqm.settings_store import KriConfigStore, threshold_values
 
 
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = ROOT / "frontend"
 FRONTEND_DIST_DIR = FRONTEND_DIR / "dist"
+CONFIG_STORE = KriConfigStore(ROOT / "data" / "config")
 
 DEFAULT_THRESHOLDS = Thresholds(
     missing_rate=0.10,
@@ -54,6 +57,20 @@ def parse_enabled_metrics(value: str | None) -> tuple[str, ...]:
         return KRI_METRIC_KEYS
     return tuple(metric for metric in value.split(",") if metric in KRI_METRIC_KEYS)
 
+
+def direct_query_default(value: Any) -> Any:
+    if hasattr(value, "default"):
+        return value.default
+    return value
+
+
+class KriConfigInput(BaseModel):
+    kri_enabled: bool = True
+    enabled_metrics: list[str] = Field(default_factory=lambda: list(KRI_METRIC_KEYS))
+    thresholds: dict[str, float]
+    saved_by: str | None = None
+    change_reason: str | None = None
+
 app = FastAPI(title="RBQM API")
 
 current_tables: dict[str, pd.DataFrame] = generate_demo_data()
@@ -68,41 +85,65 @@ class MemoryUpload(BytesIO):
 
 
 def thresholds_from_query(
-    kri_enabled: bool = Query(True),
+    kri_enabled: bool | None = Query(None),
     enabled_metrics: str | None = Query(None),
-    missing_rate: float = Query(DEFAULT_THRESHOLDS.missing_rate, ge=0.01, le=0.30),
-    late_entry_rate: float = Query(DEFAULT_THRESHOLDS.late_entry_rate, ge=0.01, le=0.60),
-    avg_entry_delay_days: float = Query(DEFAULT_THRESHOLDS.avg_entry_delay_days, ge=1.0, le=30.0),
-    open_queries_per_subject: float = Query(DEFAULT_THRESHOLDS.open_queries_per_subject, ge=0.10, le=5.00),
-    avg_open_query_age_days: float = Query(DEFAULT_THRESHOLDS.avg_open_query_age_days, ge=1.0, le=60.0),
-    safety_issues_per_subject: float = Query(DEFAULT_THRESHOLDS.safety_issues_per_subject, ge=0.01, le=1.00),
-    dlt_rate: float = Query(DEFAULT_THRESHOLDS.dlt_rate, ge=0.01, le=1.00),
-    grade3_ae_rate: float = Query(DEFAULT_THRESHOLDS.grade3_ae_rate, ge=0.01, le=2.00),
-    dose_modification_rate: float = Query(DEFAULT_THRESHOLDS.dose_modification_rate, ge=0.01, le=2.00),
-    eligibility_deviation_rate: float = Query(DEFAULT_THRESHOLDS.eligibility_deviation_rate, ge=0.01, le=1.00),
-    pk_window_deviation_rate: float = Query(DEFAULT_THRESHOLDS.pk_window_deviation_rate, ge=0.01, le=1.00),
-    tumor_assessment_issue_rate: float = Query(DEFAULT_THRESHOLDS.tumor_assessment_issue_rate, ge=0.01, le=1.00),
-    lab_issues_per_subject: float = Query(DEFAULT_THRESHOLDS.lab_issues_per_subject, ge=0.01, le=1.00),
-    major_deviations_per_subject: float = Query(DEFAULT_THRESHOLDS.major_deviations_per_subject, ge=0.01, le=1.00),
+    missing_rate: float | None = Query(None, ge=0.01, le=0.30),
+    late_entry_rate: float | None = Query(None, ge=0.01, le=0.60),
+    avg_entry_delay_days: float | None = Query(None, ge=1.0, le=30.0),
+    open_queries_per_subject: float | None = Query(None, ge=0.10, le=5.00),
+    avg_open_query_age_days: float | None = Query(None, ge=1.0, le=60.0),
+    safety_issues_per_subject: float | None = Query(None, ge=0.01, le=1.00),
+    dlt_rate: float | None = Query(None, ge=0.01, le=1.00),
+    grade3_ae_rate: float | None = Query(None, ge=0.01, le=2.00),
+    dose_modification_rate: float | None = Query(None, ge=0.01, le=2.00),
+    eligibility_deviation_rate: float | None = Query(None, ge=0.01, le=1.00),
+    pk_window_deviation_rate: float | None = Query(None, ge=0.01, le=1.00),
+    tumor_assessment_issue_rate: float | None = Query(None, ge=0.01, le=1.00),
+    lab_issues_per_subject: float | None = Query(None, ge=0.01, le=1.00),
+    major_deviations_per_subject: float | None = Query(None, ge=0.01, le=1.00),
 ) -> Thresholds:
+    kri_enabled = direct_query_default(kri_enabled)
+    enabled_metrics = direct_query_default(enabled_metrics)
+    missing_rate = direct_query_default(missing_rate)
+    late_entry_rate = direct_query_default(late_entry_rate)
+    avg_entry_delay_days = direct_query_default(avg_entry_delay_days)
+    open_queries_per_subject = direct_query_default(open_queries_per_subject)
+    avg_open_query_age_days = direct_query_default(avg_open_query_age_days)
+    safety_issues_per_subject = direct_query_default(safety_issues_per_subject)
+    dlt_rate = direct_query_default(dlt_rate)
+    grade3_ae_rate = direct_query_default(grade3_ae_rate)
+    dose_modification_rate = direct_query_default(dose_modification_rate)
+    eligibility_deviation_rate = direct_query_default(eligibility_deviation_rate)
+    pk_window_deviation_rate = direct_query_default(pk_window_deviation_rate)
+    tumor_assessment_issue_rate = direct_query_default(tumor_assessment_issue_rate)
+    lab_issues_per_subject = direct_query_default(lab_issues_per_subject)
+    major_deviations_per_subject = direct_query_default(major_deviations_per_subject)
+    active = CONFIG_STORE.active_thresholds(DEFAULT_THRESHOLDS)
     return Thresholds(
-        missing_rate=missing_rate,
-        late_entry_rate=late_entry_rate,
-        avg_entry_delay_days=avg_entry_delay_days,
-        open_queries_per_subject=open_queries_per_subject,
-        avg_open_query_age_days=avg_open_query_age_days,
-        safety_issues_per_subject=safety_issues_per_subject,
-        dlt_rate=dlt_rate,
-        grade3_ae_rate=grade3_ae_rate,
-        dose_modification_rate=dose_modification_rate,
-        eligibility_deviation_rate=eligibility_deviation_rate,
-        pk_window_deviation_rate=pk_window_deviation_rate,
-        tumor_assessment_issue_rate=tumor_assessment_issue_rate,
-        lab_issues_per_subject=lab_issues_per_subject,
-        major_deviations_per_subject=major_deviations_per_subject,
-        kri_enabled=kri_enabled,
-        enabled_metrics=parse_enabled_metrics(enabled_metrics),
+        missing_rate=missing_rate if missing_rate is not None else active.missing_rate,
+        late_entry_rate=late_entry_rate if late_entry_rate is not None else active.late_entry_rate,
+        avg_entry_delay_days=avg_entry_delay_days if avg_entry_delay_days is not None else active.avg_entry_delay_days,
+        open_queries_per_subject=open_queries_per_subject if open_queries_per_subject is not None else active.open_queries_per_subject,
+        avg_open_query_age_days=avg_open_query_age_days if avg_open_query_age_days is not None else active.avg_open_query_age_days,
+        safety_issues_per_subject=safety_issues_per_subject if safety_issues_per_subject is not None else active.safety_issues_per_subject,
+        dlt_rate=dlt_rate if dlt_rate is not None else active.dlt_rate,
+        grade3_ae_rate=grade3_ae_rate if grade3_ae_rate is not None else active.grade3_ae_rate,
+        dose_modification_rate=dose_modification_rate if dose_modification_rate is not None else active.dose_modification_rate,
+        eligibility_deviation_rate=eligibility_deviation_rate if eligibility_deviation_rate is not None else active.eligibility_deviation_rate,
+        pk_window_deviation_rate=pk_window_deviation_rate if pk_window_deviation_rate is not None else active.pk_window_deviation_rate,
+        tumor_assessment_issue_rate=tumor_assessment_issue_rate if tumor_assessment_issue_rate is not None else active.tumor_assessment_issue_rate,
+        lab_issues_per_subject=lab_issues_per_subject if lab_issues_per_subject is not None else active.lab_issues_per_subject,
+        major_deviations_per_subject=major_deviations_per_subject if major_deviations_per_subject is not None else active.major_deviations_per_subject,
+        kri_enabled=kri_enabled if kri_enabled is not None else active.kri_enabled,
+        enabled_metrics=parse_enabled_metrics(enabled_metrics) if enabled_metrics is not None else active.enabled_metrics,
     )
+
+
+def thresholds_from_config_input(config: KriConfigInput) -> Thresholds:
+    defaults = threshold_values(DEFAULT_THRESHOLDS)
+    values = {key: float(config.thresholds.get(key, defaults[key])) for key in KRI_METRIC_KEYS}
+    enabled_metrics = tuple(metric for metric in config.enabled_metrics if metric in KRI_METRIC_KEYS)
+    return Thresholds(**values, kri_enabled=config.kri_enabled, enabled_metrics=enabled_metrics)
 
 
 def bool_zh(value: bool) -> str:
@@ -193,6 +234,17 @@ def build_state(thresholds: Thresholds) -> dict[str, Any]:
 @app.get("/api/state")
 def get_state(thresholds: Thresholds = Depends(thresholds_from_query)) -> dict[str, Any]:
     return build_state(thresholds)
+
+
+@app.get("/api/config")
+def get_config() -> dict[str, Any]:
+    return CONFIG_STORE.response(default_thresholds=DEFAULT_THRESHOLDS)
+
+
+@app.post("/api/config")
+def save_config(config: KriConfigInput) -> dict[str, Any]:
+    thresholds = thresholds_from_config_input(config)
+    return CONFIG_STORE.save(thresholds, saved_by=config.saved_by, change_reason=config.change_reason)
 
 
 @app.post("/api/upload")

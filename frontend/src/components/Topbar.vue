@@ -7,6 +7,7 @@ defineProps<{
   activeTab: TabKey;
   locale: Locale;
   theme: Theme;
+  savingConfig: boolean;
   t: (key: string, values?: Record<string, string | number>) => string;
 }>();
 
@@ -14,6 +15,7 @@ const emit = defineEmits<{
   changeTab: [tab: TabKey];
   changeLocale: [locale: Locale];
   changeTheme: [theme: Theme];
+  saveConfig: [];
 }>();
 
 const settingsOpen = ref(false);
@@ -46,7 +48,9 @@ const tabs: { key: TabKey; label: string }[] = [
     </div>
     <div class="top-actions">
       <button class="icon-button" aria-label="通知"><IconSvg name="bell" /></button>
-      <button class="deploy-button">{{ t("actions.deploy") }}</button>
+      <button class="deploy-button" type="button" :disabled="savingConfig" @click="emit('saveConfig')">
+        {{ savingConfig ? t("actions.savingConfig") : t("actions.saveConfig") }}
+      </button>
       <div class="settings-wrap">
         <button
           class="icon-button"

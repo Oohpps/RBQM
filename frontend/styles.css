@@ -588,18 +588,21 @@ input[type="range"]:disabled {
   display: flex;
   align-items: center;
   gap: 12px;
+  height: 40px;
 }
 
 .icon-button {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   border: 0;
   padding: 0;
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: #071329;
   cursor: pointer;
+  line-height: 1;
 }
 
 .icon-button svg {
@@ -618,14 +621,33 @@ input[type="range"]:disabled {
 }
 
 .deploy-button {
-  height: 42px;
-  padding: 0 20px;
-  border: 0;
-  border-radius: 8px;
-  background: #0b66e4;
-  color: #fff;
-  font-size: 16px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid #8fb1e8;
+  border-radius: 7px;
+  background: #f4f8ff;
+  color: #084fa9;
+  font-size: 14px;
+  font-weight: 750;
   cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.deploy-button:hover {
+  border-color: #0b66e4;
+  background: #0b66e4;
+  color: #ffffff;
+}
+
+.deploy-button:focus-visible {
+  outline: 2px solid rgba(11, 95, 199, 0.24);
+  outline-offset: 2px;
+}
+
+.deploy-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.66;
 }
 
 .settings-wrap {
@@ -1334,6 +1356,18 @@ body[data-theme="dark"] .segmented-control button.active {
 body[data-theme="dark"] .info-banner {
   background: #111f36;
   border-color: #2f4770;
+}
+
+body[data-theme="dark"] .deploy-button {
+  border-color: #3d6aa8;
+  background: #12233d;
+  color: #9dccff;
+}
+
+body[data-theme="dark"] .deploy-button:hover {
+  border-color: #6db0ff;
+  background: #1f6fd1;
+  color: #ffffff;
 }
 
 body[data-theme="dark"] .side-item,

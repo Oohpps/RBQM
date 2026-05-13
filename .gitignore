@@ -14,5 +14,7 @@ frontend/dist/
 *.xls
 *.csv
 
+data/config/*.json
+
 .DS_Store
 Thumbs.db

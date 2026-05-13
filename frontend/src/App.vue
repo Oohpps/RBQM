@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
-import { fetchState, previewUpload, resetDemo as resetDemoApi, thresholdParams } from "./api";
+import { fetchConfig, fetchState, previewUpload, resetDemo as resetDemoApi, saveConfig as saveConfigApi, thresholdParams } from "./api";
 import { scoreColumnsByMetric, thresholds as thresholdDefaults } from "./config";
 import { translate } from "./i18n";
 import type { DataRow, Locale, RbqmState, TabKey, Theme, ThresholdItem, UploadPreview } from "./types";
@@ -22,6 +22,7 @@ const pendingFiles = ref<File[]>([]);
 const uploadPreview = ref<UploadPreview | null>(null);
 const workspaceRef = ref<HTMLElement | null>(null);
 const resizeHandleRef = ref<HTMLElement | null>(null);
+const savingConfig = ref(false);
 const thresholdRailWidth = {
   default: 352,
   min: 280,
@@ -72,6 +73,43 @@ function cancelUpload(): void {
 
 function exportPackage(): void {
   window.location.href = `/api/export?${params.value.toString()}`;
+}
+
+function applyConfig(config: { kri_enabled: boolean; enabled_metrics: string[]; thresholds: Record<string, number> }): void {
+  kriEnabled.value = config.kri_enabled;
+  const enabled = new Set(config.enabled_metrics);
+  thresholds.forEach((item) => {
+    if (Object.prototype.hasOwnProperty.call(config.thresholds, item.key)) {
+      item.value = Number(config.thresholds[item.key]);
+    }
+    item.enabled = enabled.has(item.key);
+  });
+}
+
+async function loadConfig(): Promise<void> {
+  try {
+    const config = await fetchConfig();
+    if (config.active) applyConfig(config.active);
+  } catch (error) {
+    console.error(error);
+    alert(t("alert.configLoad"));
+  }
+}
+
+async function saveConfig(): Promise<void> {
+  if (savingConfig.value) return;
+  savingConfig.value = true;
+  try {
+    const saved = await saveConfigApi(kriEnabled.value, thresholds);
+    if (saved.active) applyConfig(saved.active);
+    await loadState();
+    alert(t("alert.configSave", { version: saved.active.version }));
+  } catch (error) {
+    console.error(error);
+    alert(error instanceof Error ? error.message : t("alert.configSaveFailed"));
+  } finally {
+    savingConfig.value = false;
+  }
 }
 
 function scheduleRefresh(): void {
@@ -205,6 +243,7 @@ watch(sidebarCollapsed, (collapsed) => {
 onMounted(async () => {
   await nextTick();
   initThresholdRailResize();
+  await loadConfig();
   loadState();
 });
 
@@ -228,10 +267,12 @@ onBeforeUnmount(() => {
         :active-tab="activeTab"
         :locale="locale"
         :theme="theme"
+        :saving-config="savingConfig"
         :t="t"
         @change-tab="activateTab"
         @change-locale="setLocale"
         @change-theme="setTheme"
+        @save-config="saveConfig"
       />
 
       <section ref="workspaceRef" class="workspace">
