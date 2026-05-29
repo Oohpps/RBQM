@@ -3,39 +3,25 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 KRI_METRIC_KEYS = (
-    "missing_rate",
-    "late_entry_rate",
-    "avg_entry_delay_days",
-    "open_queries_per_subject",
+    "edc_visit_entry_delay_days",
+    "page_missing_days_all",
+    "page_missing_days_without_lab",
     "avg_open_query_age_days",
-    "safety_issues_per_subject",
-    "dlt_rate",
-    "grade3_ae_rate",
-    "dose_modification_rate",
-    "eligibility_deviation_rate",
-    "pk_window_deviation_rate",
-    "tumor_assessment_issue_rate",
-    "lab_issues_per_subject",
-    "major_deviations_per_subject",
+    "page_sdv_pending_rate",
+    "logline_sdv_pending_rate",
+    "manual_query_reissue_rate",
 )
 
 
 @dataclass(frozen=True)
 class Thresholds:
-    missing_rate: float
-    late_entry_rate: float
-    avg_entry_delay_days: float
-    open_queries_per_subject: float
+    edc_visit_entry_delay_days: float
+    page_missing_days_all: float
+    page_missing_days_without_lab: float
     avg_open_query_age_days: float
-    safety_issues_per_subject: float
-    dlt_rate: float
-    grade3_ae_rate: float
-    dose_modification_rate: float
-    eligibility_deviation_rate: float
-    pk_window_deviation_rate: float
-    tumor_assessment_issue_rate: float
-    lab_issues_per_subject: float
-    major_deviations_per_subject: float
+    page_sdv_pending_rate: float
+    logline_sdv_pending_rate: float
+    manual_query_reissue_rate: float
     kri_enabled: bool = True
     enabled_metrics: tuple[str, ...] = KRI_METRIC_KEYS
 

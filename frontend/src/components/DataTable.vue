@@ -26,10 +26,10 @@ function isNumericColumn(column: string): boolean {
   return data.value.some((row) => typeof row[column] === "number");
 }
 
-function formatCell(value: string | number | boolean | null | undefined): string {
+function formatCell(value: string | number | boolean | null | string[] | undefined): string {
   if (value === null || value === undefined) return "";
+  if (Array.isArray(value)) return value.join("、");
   if (typeof value === "number") {
-    if (Math.abs(value) < 1) return value.toFixed(3);
     return Number.isInteger(value) ? String(value) : value.toFixed(2);
   }
   return String(value);

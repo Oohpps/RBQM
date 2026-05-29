@@ -1,4 +1,4 @@
-import type { KriConfigResponse, MappingConfig, RbqmState, ThresholdItem, UploadPreview } from "./types";
+import type { KriConfigResponse, MappingConfig, RbqmState, ThresholdItem, UploadPreview, UploadRole } from "./types";
 
 export function thresholdParams(kriEnabled: boolean, thresholds: { key: string; value: number; enabled: boolean }[]): URLSearchParams {
   const params = new URLSearchParams();
@@ -20,20 +20,26 @@ export async function fetchState(params: URLSearchParams): Promise<RbqmState> {
   return readJson<RbqmState>(await fetch(`/api/state?${params.toString()}`), "Failed to load RBQM data");
 }
 
-export async function resetDemo(params: URLSearchParams): Promise<RbqmState> {
-  return readJson<RbqmState>(await fetch(`/api/demo?${params.toString()}`, { method: "POST" }), "Failed to reset demo data");
+export async function fetchSession(): Promise<{ session_id: string }> {
+  return readJson<{ session_id: string }>(await fetch("/api/session"), "Failed to load app session");
 }
 
-export async function previewUpload(files: File[]): Promise<UploadPreview> {
+export async function resetState(params: URLSearchParams): Promise<RbqmState> {
+  return readJson<RbqmState>(await fetch(`/api/reset?${params.toString()}`, { method: "POST" }), "Failed to reset RBQM data");
+}
+
+export async function previewUpload(files: File[], sourceRoles: Record<string, UploadRole> = {}): Promise<UploadPreview> {
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
+  formData.append("source_roles", JSON.stringify(sourceRoles));
   return readJson<UploadPreview>(await fetch("/api/upload/preview", { method: "POST", body: formData }), "Upload preview failed");
 }
 
-export async function commitUpload(files: File[], config: MappingConfig, params: URLSearchParams): Promise<RbqmState> {
+export async function commitUpload(files: File[], config: MappingConfig, params: URLSearchParams, sourceRoles: Record<string, UploadRole> = {}): Promise<RbqmState> {
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
   formData.append("mapping_config", JSON.stringify(config));
+  formData.append("source_roles", JSON.stringify(sourceRoles));
   return readJson<RbqmState>(await fetch(`/api/upload/commit?${params.toString()}`, { method: "POST", body: formData }), "Upload failed");
 }
 

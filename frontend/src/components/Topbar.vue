@@ -19,32 +19,12 @@ const emit = defineEmits<{
 }>();
 
 const settingsOpen = ref(false);
-const tabs: { key: TabKey; label: string }[] = [
-  { key: "import", label: "tabs.import" },
-  { key: "overview", label: "tabs.overview" },
-  { key: "kri", label: "tabs.kri" },
-  { key: "ranking", label: "tabs.ranking" },
-  { key: "details", label: "tabs.details" },
-  { key: "actions", label: "tabs.actions" },
-];
 </script>
 
 <template>
   <header class="topbar">
     <div class="topbar-left">
       <div class="topbar-logo">RBQM</div>
-      <nav class="top-tabs" aria-label="子菜单">
-        <button
-          v-for="tab in tabs"
-          :key="tab.key"
-          class="top-tab"
-          :class="{ active: activeTab === tab.key }"
-          type="button"
-          @click="emit('changeTab', tab.key)"
-        >
-          {{ t(tab.label) }}
-        </button>
-      </nav>
     </div>
     <div class="top-actions">
       <button class="icon-button" aria-label="通知"><IconSvg name="bell" /></button>

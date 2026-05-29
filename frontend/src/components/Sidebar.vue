@@ -1,30 +1,39 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import logoUrl from "../../assets/rbqm-logo.png";
+import type { TabKey, UploadRole } from "../types";
 import IconSvg from "./IconSvg.vue";
 
 defineProps<{
-  sampleChecked: boolean;
+  activeTab: TabKey;
+  importing: boolean;
   t: (key: string, values?: Record<string, string | number>) => string;
 }>();
 
 const emit = defineEmits<{
   toggleSidebar: [];
-  filesSelected: [files: File[]];
-  useDemo: [];
+  navigate: [tab: TabKey];
+  filesSelected: [files: File[], role: UploadRole];
 }>();
 
-function onFilesSelected(event: Event): void {
+const uploadOptions: { role: UploadRole; label: string }[] = [
+  { role: "clinical_data", label: "临床研究数据" },
+  { role: "progress_report", label: "进展报告" },
+  { role: "critical_points", label: "关键数据点" },
+  { role: "query_detail", label: "质疑明细报告" },
+];
+const importOpen = ref(false);
+
+function onFilesSelected(event: Event, role: UploadRole): void {
   const input = event.target as HTMLInputElement;
+  if (input.disabled) return;
   if (input.files?.length) {
-    emit("filesSelected", Array.from(input.files));
+    emit("filesSelected", Array.from(input.files), role);
+    importOpen.value = false;
     input.value = "";
   }
 }
 
-function onSampleChange(event: Event): void {
-  const input = event.target as HTMLInputElement;
-  if (input.checked) emit("useDemo");
-}
 </script>
 
 <template>
@@ -42,42 +51,75 @@ function onSampleChange(event: Event): void {
         <IconSvg name="collapseLeft" />
         <span class="sidebar-text">{{ t("nav.collapse") }}</span>
       </button>
-      <a class="side-item muted" href="#">
-        <span class="side-icon"><IconSvg name="grid" /></span>
-        <span class="sidebar-text">{{ t("nav.dashboard") }}</span>
-      </a>
-      <a class="side-item muted" href="#">
+      <button
+        class="side-item"
+        :class="{ active: activeTab === 'overview', muted: activeTab !== 'overview' }"
+        type="button"
+        @click="emit('navigate', 'overview')"
+      >
         <span class="side-icon"><IconSvg name="lab" /></span>
         <span class="sidebar-text">{{ t("nav.studies") }}</span>
-      </a>
-      <a class="side-item active" href="#">
+      </button>
+      <button
+        class="side-item"
+        :class="{ active: activeTab === 'import', muted: activeTab !== 'import' }"
+        type="button"
+        @click="emit('navigate', 'import')"
+      >
         <span class="side-icon"><IconSvg name="sliders" /></span>
         <span class="sidebar-text">{{ t("nav.thresholds") }}</span>
-      </a>
-      <a class="side-item muted" href="#">
+      </button>
+      <button
+        class="side-item"
+        :class="{ active: activeTab === 'kri', muted: activeTab !== 'kri' }"
+        type="button"
+        @click="emit('navigate', 'kri')"
+      >
+        <span class="side-icon"><IconSvg name="grid" /></span>
+        <span class="sidebar-text">{{ t("nav.dashboard") }}</span>
+      </button>
+      <button
+        class="side-item"
+        :class="{ active: activeTab === 'ranking', muted: activeTab !== 'ranking' }"
+        type="button"
+        @click="emit('navigate', 'ranking')"
+      >
         <span class="side-icon"><IconSvg name="pin" /></span>
         <span class="sidebar-text">{{ t("nav.sites") }}</span>
-      </a>
-      <a class="side-item muted" href="#">
+      </button>
+      <button
+        class="side-item"
+        :class="{ active: activeTab === 'details', muted: activeTab !== 'details' }"
+        type="button"
+        @click="emit('navigate', 'details')"
+      >
         <span class="side-icon"><IconSvg name="chart" /></span>
         <span class="sidebar-text">{{ t("nav.reports") }}</span>
-      </a>
+      </button>
     </nav>
 
     <section class="upload-panel">
-      <h3 class="sidebar-text">{{ t("upload.title") }}</h3>
-      <label class="upload-button">
+      <button class="upload-trigger-button" type="button" :aria-expanded="importOpen" :disabled="importing" @click="importOpen = !importOpen">
         <span class="button-icon"><IconSvg name="upload" /></span>
-        <span class="sidebar-text">{{ t("upload.button") }}</span>
-        <input type="file" accept=".csv,.xlsx,.xls" multiple @change="onFilesSelected" />
-      </label>
-      <p class="sidebar-text">{{ t("upload.note") }}</p>
+        <span class="sidebar-text">导入数据</span>
+      </button>
     </section>
 
-    <label class="sample-toggle">
-      <span class="sidebar-text">{{ t("sample.toggle") }}</span>
-      <input type="checkbox" :checked="sampleChecked" @change="onSampleChange" />
-      <span class="toggle-track"></span>
-    </label>
+    <section v-if="importOpen" class="upload-popover" aria-label="导入数据">
+      <div class="upload-popover-header">
+        <div>
+          <h3>导入数据</h3>
+          <p>{{ t("upload.note") }}</p>
+        </div>
+        <button class="upload-popover-close" type="button" aria-label="关闭导入数据" @click="importOpen = false">×</button>
+      </div>
+      <div class="upload-option-grid">
+        <label v-for="option in uploadOptions" :key="option.role" class="upload-option-card" :class="{ disabled: importing }">
+          <span class="button-icon"><IconSvg name="upload" /></span>
+          <span>{{ option.label }}</span>
+          <input type="file" accept=".csv,.xlsx,.xls" multiple :disabled="importing" @change="onFilesSelected($event, option.role)" />
+        </label>
+      </div>
+    </section>
   </aside>
 </template>

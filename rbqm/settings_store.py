@@ -68,7 +68,12 @@ class KriConfigStore:
                 break
         if active is None and default_thresholds is not None:
             active = self.default_record(default_thresholds)
-        return {"active": active, "versions": current["versions"]}
+        elif active is not None and default_thresholds is not None:
+            active = normalized_record(active, default_thresholds)
+        versions = current["versions"]
+        if default_thresholds is not None:
+            versions = [normalized_record(item, default_thresholds) for item in versions]
+        return {"active": active, "versions": versions}
 
     @staticmethod
     def default_record(default_thresholds: Thresholds) -> dict[str, Any]:
@@ -95,9 +100,29 @@ def thresholds_from_record(record: dict[str, Any], default_thresholds: Threshold
     saved_values = record.get("thresholds", {})
     defaults = threshold_values(default_thresholds)
     values = {key: float(saved_values.get(key, defaults[key])) for key in KRI_METRIC_KEYS}
-    enabled_metrics = tuple(metric for metric in record.get("enabled_metrics", KRI_METRIC_KEYS) if metric in KRI_METRIC_KEYS)
+    for day_metric in ("page_sdv_pending_rate", "logline_sdv_pending_rate"):
+        if values.get(day_metric, 0) < 1:
+            values[day_metric] = defaults[day_metric]
+    raw_enabled_metrics = tuple(record.get("enabled_metrics", KRI_METRIC_KEYS))
+    enabled_set = {metric for metric in raw_enabled_metrics if metric in KRI_METRIC_KEYS}
+    if "page_missing_rate" in raw_enabled_metrics:
+        enabled_set.update({"page_missing_days_all", "page_missing_days_without_lab"})
+    if "page_sdv_pending_rate" in raw_enabled_metrics:
+        enabled_set.add("logline_sdv_pending_rate")
+    enabled_metrics = tuple(metric for metric in KRI_METRIC_KEYS if metric in enabled_set)
+    if not enabled_metrics and raw_enabled_metrics:
+        enabled_metrics = KRI_METRIC_KEYS
     return Thresholds(
         **values,
         kri_enabled=bool(record.get("kri_enabled", default_thresholds.kri_enabled)),
         enabled_metrics=enabled_metrics,
     )
+
+
+def normalized_record(record: dict[str, Any], default_thresholds: Thresholds) -> dict[str, Any]:
+    thresholds = thresholds_from_record(record, default_thresholds)
+    return {
+        **record,
+        "enabled_metrics": list(thresholds.enabled_metrics),
+        "thresholds": threshold_values(thresholds),
+    }

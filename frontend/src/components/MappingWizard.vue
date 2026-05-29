@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
 import { commitUpload } from "../api";
-import type { MappingConfig, MappingSelections, PreviewDomain, PreviewSource, RbqmState, UploadPreview } from "../types";
+import type { MappingConfig, MappingSelections, PreviewDomain, PreviewSource, RbqmState, UploadPreview, UploadRole } from "../types";
 
 const props = defineProps<{
   preview: UploadPreview | null;
   files: File[];
+  sourceRoles: Record<string, UploadRole>;
   params: URLSearchParams;
   t: (key: string, values?: Record<string, string | number>) => string;
 }>();
@@ -17,6 +18,7 @@ const emit = defineEmits<{
 
 const step = ref(1);
 const selections = reactive<MappingSelections>({});
+const committing = ref(false);
 
 const selectedSources = computed(() => {
   if (!props.preview) return [];
@@ -107,11 +109,15 @@ function onDomainSelect(sourceId: string, event: Event): void {
 }
 
 async function commit(): Promise<void> {
+  if (committing.value) return;
+  committing.value = true;
   try {
-    const state = await commitUpload(props.files, config.value, props.params);
+    const state = await commitUpload(props.files, config.value, props.params, props.sourceRoles);
     emit("imported", state);
   } catch (error) {
     alert(error instanceof Error ? error.message : props.t("alert.upload"));
+  } finally {
+    committing.value = false;
   }
 }
 </script>
@@ -195,13 +201,15 @@ async function commit(): Promise<void> {
     </div>
 
     <div class="mapping-actions">
-      <button class="secondary-button" type="button" :disabled="step === 1" @click="step = Math.max(1, step - 1)">
+      <button class="secondary-button" type="button" :disabled="step === 1 || committing" @click="step = Math.max(1, step - 1)">
         {{ t("mapping.back") }}
       </button>
-      <button v-if="step !== 3" class="export-button" type="button" @click="step = Math.min(3, step + 1)">
+      <button v-if="step !== 3" class="export-button" type="button" :disabled="committing" @click="step = Math.min(3, step + 1)">
         {{ t("mapping.next") }}
       </button>
-      <button v-else class="export-button" type="button" @click="commit">{{ t("mapping.commit") }}</button>
+      <button v-else class="export-button" type="button" :class="{ loading: committing }" :disabled="committing" @click="commit">
+        {{ committing ? "正在导入..." : t("mapping.commit") }}
+      </button>
     </div>
   </section>
 </template>

@@ -30,7 +30,14 @@ function rangeStyle(item: ThresholdItem): Record<string, string> {
 }
 
 function setKriFromEvent(event: Event): void {
-  emit("updateKriEnabled", (event.target as HTMLInputElement).checked);
+  const enabled = (event.target as HTMLInputElement).checked;
+  if (enabled) {
+    props.thresholds.forEach((item) => {
+      item.enabled = true;
+    });
+    emit("thresholdChanged");
+  }
+  emit("updateKriEnabled", enabled);
 }
 
 function setMetricEnabled(item: ThresholdItem, event: Event): void {
@@ -67,12 +74,7 @@ function setThresholdValue(item: ThresholdItem, event: Event): void {
         </label>
       </div>
 
-      <div
-        v-for="item in thresholds"
-        :key="item.key"
-        class="threshold-control"
-        :class="{ disabled: !kriEnabled || !item.enabled }"
-      >
+      <div v-for="item in kriEnabled ? thresholds : []" :key="item.key" class="threshold-control" :class="{ disabled: !item.enabled }">
         <div class="threshold-row">
           <div class="threshold-name">
             <span class="threshold-chip">{{ groupOf(item) }}</span>

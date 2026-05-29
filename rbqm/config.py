@@ -4,6 +4,7 @@ DOMAIN_LABELS = {
     "subjects": "受试者 / 入组",
     "visits": "访视 / EDC表单",
     "queries": "Query / 数据核查",
+    "critical_points": "关键数据点",
     "ae": "AE / SAE",
     "dosing": "给药 / 剂量调整",
     "pk": "PK / PD采样",
@@ -16,6 +17,7 @@ DOMAIN_FIELDS = {
     "subjects": ["subject_id", "site_id", "country", "status", "enrolled_date", "randomized_date"],
     "visits": ["subject_id", "site_id", "visit_date", "data_entry_date", "form_status"],
     "queries": ["subject_id", "site_id", "query_status", "opened_date", "closed_date", "age_days"],
+    "critical_points": ["subject_id", "site_id", "visit_name", "page_name", "field_name"],
     "ae": ["subject_id", "site_id", "serious", "dlt", "ctcae_grade", "severity", "outcome", "start_date"],
     "dosing": ["subject_id", "site_id", "dose_level", "dose_modified", "modification_reason", "administration_date"],
     "pk": ["subject_id", "site_id", "timepoint", "scheduled_sample_time", "actual_sample_time", "window_deviation"],
@@ -125,12 +127,38 @@ METRIC_VALUE_LABELS = {
     "major_deviations_per_subject": "每受试者重大偏离数",
 }
 
+NEW_KRI_LABELS = {
+    "data_points": "数据点数",
+    "page_missing_days_all": "页面缺失天数（全部）",
+    "page_missing_days_without_lab": "页面缺失天数（不含对接LAB）",
+    "page_sdv_pending_rate": "未SDV（页面）",
+    "logline_sdv_pending_rate": "未SDV（logline）",
+    "manual_query_reissue_rate": "人工质疑重发率",
+    "edc_visit_entry_delay_days": "EDC访视录入延迟天数",
+    "avg_open_query_age_days": "未关闭质疑天数",
+}
+
+NEW_COMPONENT_LABELS = {
+    "Query Creation_component": "Query创建评分",
+    "Query Cycle Time_component": "Query周期评分",
+    "Query Rework_component": "Query返工评分",
+    "EDC Timeliness_component": "EDC及时性评分",
+    "Page Quality_component": "页面质量评分",
+    "SAE Reporting_component": "SAE报告评分",
+    "Abnormal Trends_component": "异常趋势评分",
+}
+
+METRIC_LABELS.update(NEW_KRI_LABELS)
+METRIC_LABELS.update(NEW_COMPONENT_LABELS)
+METRIC_VALUE_LABELS.update(NEW_KRI_LABELS)
+COMPONENT_LABELS.update(NEW_COMPONENT_LABELS)
+
 SITE_ALIASES = [
     "site_id", "site", "site_no", "site_number", "center", "center_id", "centre", "institution",
-    "中心", "中心编号", "研究中心", "机构编号",
+    "中心", "中心编号", "研究中心", "机构编号", "试验中心编号",
 ]
 SUBJECT_ALIASES = [
     "subject_id", "subject", "subjid", "usubjid", "participant_id", "patient_id", "patient", "screening_number",
-    "受试者", "受试者编号", "受试者id", "患者", "患者编号", "患者id", "入组编号", "随机号",
+    "受试者", "受试者编号", "受试者id", "患者", "患者编号", "患者id", "入组编号", "随机号", "筛选号", "参与者筛选号",
 ]
 

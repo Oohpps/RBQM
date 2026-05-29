@@ -8,8 +8,72 @@ import pandas as pd
 from .config import DOMAIN_FIELDS, DOMAIN_LABELS, REQUIRED_DOMAIN_FIELDS
 from .utils import snake_case, standardize_columns
 
+FORCED_ROLE_DOMAINS = {
+    "critical_points": "critical_points",
+    "query_detail": "queries",
+}
+
+CLINICAL_RAW_SHEET_TOKENS = (
+    "ae",
+    "lb_hba1c",
+    "hba1c",
+    "vs_w",
+    "weight",
+    "体重",
+    "糖化",
+)
+
+
+def normalize_source_roles(source_roles: Any | None) -> dict[str, str]:
+    if not source_roles:
+        return {}
+    if isinstance(source_roles, str):
+        try:
+            source_roles = json.loads(source_roles)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"上传来源类型不是有效JSON：{exc.msg}") from exc
+    if not isinstance(source_roles, dict):
+        raise ValueError("上传来源类型必须是JSON对象")
+    return {str(name): str(role) for name, role in source_roles.items()}
+
+
+def role_domain(filename: str, source_roles: dict[str, str]) -> str | None:
+    return FORCED_ROLE_DOMAINS.get(source_roles.get(filename, ""))
+
+
+def should_read_excel_sheet(
+    filename: str,
+    sheet_name: str,
+    roles: dict[str, str],
+    configured_sources: dict[str, Any] | None = None,
+) -> bool:
+    configured_sources = configured_sources or {}
+    label = source_id(filename, sheet_name)
+    if label in configured_sources:
+        return True
+    if role_domain(filename, roles):
+        return True
+    role = roles.get(filename, "")
+    if role != "clinical_data":
+        return True
+    if infer_domain(sheet_name):
+        return True
+    normalized_sheet = snake_case(sheet_name)
+    return any(token in normalized_sheet for token in CLINICAL_RAW_SHEET_TOKENS)
+
+
 def infer_domain(name: str) -> str | None:
     value = snake_case(name)
+    if any(token in value for token in ["关键数据点", "key_data_point", "critical_data_point", "critical_points"]):
+        return "critical_points"
+    if any(token in value for token in ["query_detail", "query_details", "质疑明细", "质疑明细报告"]):
+        return "queries"
+    if any(token in value for token in ["缺失页", "页面状态明细", "未sdv", "页面sdv"]):
+        return "visits"
+    if any(token in value for token in ["未关闭质疑", "未回答质疑"]):
+        return "queries"
+    if any(token in value for token in ["受试者summary", "受试者_summary"]):
+        return "subjects"
     if any(token in value for token in ["query", "queries", "qry", "查询", "质疑", "问题"]):
         return "queries"
     if any(token in value for token in ["dose", "dosing", "exposure", "ex", "drug_administration", "给药", "剂量", "暴露"]):
@@ -71,10 +135,12 @@ def preview_value(value: Any) -> Any:
     return value
 
 
-def preview_uploaded_files(uploaded_files: list[Any], sample_rows: int = 3) -> dict[str, Any]:
+def preview_uploaded_files(uploaded_files: list[Any], sample_rows: int = 3, source_roles: Any | None = None) -> dict[str, Any]:
+    roles = normalize_source_roles(source_roles)
     sources: list[dict[str, Any]] = []
     for uploaded in uploaded_files:
         filename = uploaded.name
+        forced_domain = role_domain(filename, roles)
         suffix = filename.rsplit(".", 1)[-1].lower()
         if suffix == "csv":
             df = pd.read_csv(uploaded)
@@ -86,13 +152,15 @@ def preview_uploaded_files(uploaded_files: list[Any], sample_rows: int = 3) -> d
                     "rows": len(df),
                     "columns": [str(column) for column in df.columns],
                     "sample": dataframe_preview_records(df, sample_rows),
-                    "guessed_domain": infer_domain(filename),
+                    "upload_role": roles.get(filename),
+                    "guessed_domain": forced_domain or infer_domain(filename),
                 }
             )
             continue
 
-        sheets = pd.read_excel(uploaded, sheet_name=None)
-        for sheet_name, df in sheets.items():
+        workbook = pd.ExcelFile(uploaded)
+        for sheet_name in workbook.sheet_names:
+            df = pd.read_excel(workbook, sheet_name=sheet_name)
             sources.append(
                 {
                     "source_id": source_id(filename, sheet_name),
@@ -101,7 +169,8 @@ def preview_uploaded_files(uploaded_files: list[Any], sample_rows: int = 3) -> d
                     "rows": len(df),
                     "columns": [str(column) for column in df.columns],
                     "sample": dataframe_preview_records(df, sample_rows),
-                    "guessed_domain": infer_domain(sheet_name) or infer_domain(filename),
+                    "upload_role": roles.get(filename),
+                    "guessed_domain": forced_domain or infer_domain(sheet_name) or infer_domain(filename),
                 }
             )
     return {
@@ -140,11 +209,14 @@ def mapped_frame(source_key: str, df: pd.DataFrame, source_mapping: dict[str, An
         if str(source_column) not in original_to_standard:
             raise ValueError(f"{source_key} 缺少映射列：{source_column}")
         rename_map[original_to_standard[str(source_column)]] = snake_case(target_field)
-    return standardized.rename(columns=rename_map)
+    mapped = standardized.rename(columns=rename_map)
+    mapped["__source_name"] = source_key
+    return mapped
 
 
-def read_uploaded_files(uploaded_files: list[Any], mapping_config: Any | None = None) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
+def read_uploaded_files(uploaded_files: list[Any], mapping_config: Any | None = None, source_roles: Any | None = None) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
     mapping = normalize_mapping_config(mapping_config)
+    roles = normalize_source_roles(source_roles)
     configured_sources = dict(mapping["sources"])
     seen_sources: set[str] = set()
     domain_tables: dict[str, list[pd.DataFrame]] = {domain: [] for domain in DOMAIN_LABELS}
@@ -152,6 +224,7 @@ def read_uploaded_files(uploaded_files: list[Any], mapping_config: Any | None = 
 
     for uploaded in uploaded_files:
         filename = uploaded.name
+        forced_domain = role_domain(filename, roles)
         suffix = filename.rsplit(".", 1)[-1].lower()
         if suffix == "csv":
             df = pd.read_csv(uploaded)
@@ -164,13 +237,23 @@ def read_uploaded_files(uploaded_files: list[Any], mapping_config: Any | None = 
                 domain = source_mapping["domain"]
                 domain_tables[domain].append(mapped)
                 continue
-            domain = infer_domain(filename)
+            domain = forced_domain or infer_domain(filename)
             if domain:
-                domain_tables[domain].append(standardize_columns(df))
+                standardized = standardize_columns(df)
+                standardized["__source_name"] = key
+                domain_tables[domain].append(standardized)
             continue
 
-        sheets = pd.read_excel(uploaded, sheet_name=None)
-        for sheet_name, df in sheets.items():
+        workbook = pd.ExcelFile(uploaded)
+        sheet_names = [
+            sheet_name
+            for sheet_name in workbook.sheet_names
+            if should_read_excel_sheet(filename, sheet_name, roles, configured_sources)
+        ]
+        if not sheet_names:
+            sheet_names = workbook.sheet_names
+        for sheet_name in sheet_names:
+            df = pd.read_excel(workbook, sheet_name=sheet_name)
             label = source_id(filename, sheet_name)
             raw_tables[label] = df
             seen_sources.add(label)
@@ -180,9 +263,11 @@ def read_uploaded_files(uploaded_files: list[Any], mapping_config: Any | None = 
                 domain = source_mapping["domain"]
                 domain_tables[domain].append(mapped)
                 continue
-            domain = infer_domain(sheet_name) or infer_domain(filename)
+            domain = forced_domain or infer_domain(sheet_name) or infer_domain(filename)
             if domain:
-                domain_tables[domain].append(standardize_columns(df))
+                standardized = standardize_columns(df)
+                standardized["__source_name"] = label
+                domain_tables[domain].append(standardized)
 
     unknown_sources = sorted(set(configured_sources) - seen_sources)
     if unknown_sources:
