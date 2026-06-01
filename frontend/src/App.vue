@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
-import { commitUpload, fetchConfig, fetchSession, fetchState, resetState, saveConfig as saveConfigApi, thresholdParams } from "./api";
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { commitUpload, fetchSession, fetchState, resetState, thresholdParams } from "./api";
 import { thresholds as thresholdDefaults } from "./config";
 import { translate } from "./i18n";
 import type { DataRow, Locale, PatientMedicalRecord, PatientMedicalSubject, RbqmState, TabKey, Theme, ThresholdItem, UploadPreview, UploadRole } from "./types";
 import DataTable from "./components/DataTable.vue";
-import IconSvg from "./components/IconSvg.vue";
 import Sidebar from "./components/Sidebar.vue";
-import ThresholdPanel from "./components/ThresholdPanel.vue";
 import Topbar from "./components/Topbar.vue";
 
 const kriEnabled = ref(true);
@@ -16,20 +14,10 @@ const state = ref<RbqmState | null>(null);
 const locale = ref<Locale>((localStorage.getItem("rbqm.language") as Locale) || "zh");
 const theme = ref<Theme>((localStorage.getItem("rbqm.theme") as Theme) || "light");
 const sidebarCollapsed = ref(false);
-const settingsRefreshTimer = ref<number | null>(null);
 const pendingFiles = ref<File[]>([]);
 const pendingSourceRoles = ref<Record<string, UploadRole>>({});
 const uploadPreview = ref<UploadPreview | null>(null);
 const importingData = ref(false);
-const workspaceRef = ref<HTMLElement | null>(null);
-const resizeHandleRef = ref<HTMLElement | null>(null);
-const savingConfig = ref(false);
-const thresholdRailWidth = {
-  default: 352,
-  min: 280,
-  max: 560,
-  storageKey: "rbqm.thresholdRailWidth",
-};
 const sessionStorageKey = "rbqm.backendSessionId";
 
 const thresholds = reactive<ThresholdItem[]>(
@@ -41,8 +29,6 @@ const thresholds = reactive<ThresholdItem[]>(
 );
 
 const params = computed(() => thresholdParams(kriEnabled.value, thresholds));
-const hasImportedData = computed(() => Boolean((state.value?.raw_summary || []).length || (state.value?.domain_summary || []).length));
-const dataHint = computed(() => (hasImportedData.value ? t("hint.uploaded") : t("hint.empty")));
 const importStatusText = computed(() => (locale.value === "zh" ? "正在导入数据，请稍候..." : "Importing data, please wait..."));
 const rawSourceNames = computed(() => (state.value?.raw_summary || []).map((row) => Object.values(row).join(" ").toLowerCase()).join(" "));
 const hasProgressReport = computed(() =>
@@ -156,15 +142,120 @@ function deltaBarLeft(records: PatientMedicalRecord[], index: number): number {
   return changeFromBaseline(records, index) < 0 ? 50 - width : 50;
 }
 
-const activeDrilldownKey = ref("");
 const dashboardPanel = ref<"efficacy" | "ae" | "sae" | "critical">("efficacy");
-const enabledMetricKeys = computed(() => new Set(kriEnabled.value ? thresholds.filter((item) => item.enabled).map((item) => item.key) : []));
-const kriDrilldowns = computed(() => (state.value?.kri_drilldowns || []).filter((item) => enabledMetricKeys.value.has(item.key)));
-const activeDrilldown = computed(() => kriDrilldowns.value.find((item) => item.key === activeDrilldownKey.value) || kriDrilldowns.value[0] || null);
-const maxDrilldownValue = computed(() => Math.max(...(activeDrilldown.value?.center_rows || []).map((row) => Number(row["超阈值条数"] || 0)), 1));
 const selectedMedicalSubjectId = ref("");
 const medicalSubjects = computed<PatientMedicalSubject[]>(() => state.value?.patient_medical_review?.subjects || []);
 const medicalRecords = computed<PatientMedicalRecord[]>(() => state.value?.patient_medical_review?.records || []);
+const blindedEfficacySiteRows = computed(() => state.value?.patient_medical_review?.site_summary || []);
+const indicationOptions = [
+  { value: "non_oncology_diabetes", label: "非肿瘤 - 糖尿病", configured: true },
+  { value: "oncology_hcc", label: "肿瘤 - 肝癌", configured: false },
+  { value: "oncology_lung", label: "肿瘤 - 肺癌", configured: false },
+  { value: "non_oncology_hypertension", label: "非肿瘤 - 高血压", configured: false },
+  { value: "non_oncology_copd", label: "非肿瘤 - 慢阻肺", configured: false },
+] as const;
+type Indication = typeof indicationOptions[number]["value"];
+const selectedIndication = ref<Indication>("non_oncology_diabetes");
+const selectedIndicationConfig = computed(() => indicationOptions.find((option) => option.value === selectedIndication.value)!);
+const isConfiguredIndication = computed(() => selectedIndicationConfig.value.configured);
+const efficacyModelOptions = [
+  { value: "hba1c_weight", label: "综合疗效：HbA1c + 体重" },
+  { value: "hba1c", label: "主要疗效：HbA1c" },
+  { value: "weight", label: "辅助疗效：体重" },
+] as const;
+type EfficacyModel = typeof efficacyModelOptions[number]["value"];
+const selectedEfficacyModel = ref<EfficacyModel>("hba1c_weight");
+const usesHba1c = computed(() => selectedEfficacyModel.value !== "weight");
+const usesWeight = computed(() => selectedEfficacyModel.value !== "hba1c");
+const blindedRiskWeightInputs = reactive({ hba1c: 40, weight: 30, incomplete: 30 });
+const appliedBlindedRiskWeights = reactive({ hba1c: 40, weight: 30, incomplete: 30 });
+const blindedRiskWeightMessage = ref("当前使用默认权重。");
+const blindedRiskWeightTotal = computed(() =>
+  (usesHba1c.value ? appliedBlindedRiskWeights.hba1c : 0)
+  + (usesWeight.value ? appliedBlindedRiskWeights.weight : 0)
+  + appliedBlindedRiskWeights.incomplete,
+);
+const normalizedBlindedRiskWeights = computed(() => {
+  const total = blindedRiskWeightTotal.value || 1;
+  return {
+    hba1c: usesHba1c.value ? appliedBlindedRiskWeights.hba1c / total : 0,
+    weight: usesWeight.value ? appliedBlindedRiskWeights.weight / total : 0,
+    incomplete: appliedBlindedRiskWeights.incomplete / total,
+  };
+});
+const blindedRiskFormula = computed(() => {
+  const parts = [];
+  if (usesHba1c.value) parts.push("HbA1c异常评分 × 权重");
+  if (usesWeight.value) parts.push("体重异常评分 × 权重");
+  parts.push("数据不完整评分 × 权重");
+  return `中心风险评分 = ${parts.join(" + ")}`;
+});
+function applyBlindedRiskWeights(): void {
+  const values = [
+    usesHba1c.value ? Number(blindedRiskWeightInputs.hba1c) : 0,
+    usesWeight.value ? Number(blindedRiskWeightInputs.weight) : 0,
+    Number(blindedRiskWeightInputs.incomplete),
+  ];
+  if (values.some((value) => !Number.isFinite(value) || value < 0)) {
+    blindedRiskWeightMessage.value = "请输入大于或等于 0 的有效数字。";
+    return;
+  }
+  if (values.reduce((sum, value) => sum + value, 0) <= 0) {
+    blindedRiskWeightMessage.value = "当前显示的权重合计必须大于 0。";
+    return;
+  }
+  [appliedBlindedRiskWeights.hba1c, appliedBlindedRiskWeights.weight, appliedBlindedRiskWeights.incomplete] = values;
+  blindedRiskWeightMessage.value = "已按新权重重新计算中心风险评分。";
+}
+const dynamicBlindedEfficacySiteRows = computed(() =>
+  blindedEfficacySiteRows.value
+    .map((source) => {
+      const row = { ...source };
+      const subjectCount = Number(row["受试者数"] || 0);
+      const evaluableCount = usesHba1c.value && usesWeight.value
+        ? subjectCount * (1 - Number(row["配对数据不完整率（%）"] || 0) / 100)
+        : Number(row[usesHba1c.value ? "HbA1c可评估人数" : "体重可评估人数"] || 0);
+      const incompleteScore = subjectCount ? Math.min(100, Math.max(0, (1 - evaluableCount / subjectCount) * 100)) : 0;
+      const score = (
+        (usesHba1c.value ? Number(row["HbA1c异常评分"] || 0) * normalizedBlindedRiskWeights.value.hba1c : 0)
+        + (usesWeight.value ? Number(row["体重异常评分"] || 0) * normalizedBlindedRiskWeights.value.weight : 0)
+        + incompleteScore * normalizedBlindedRiskWeights.value.incomplete
+      );
+      const roundedScore = Number(score.toFixed(1));
+      row["盲态疗效异常风险评分"] = roundedScore;
+      row["数据不完整评分"] = Number(incompleteScore.toFixed(1));
+      row["所选指标数据不完整率（%）"] = Number(incompleteScore.toFixed(2));
+      row["风险等级"] = Number(row["受试者数"] || 0) < 3 ? "观察" : roundedScore >= 70 ? "高" : roundedScore >= 40 ? "中" : "低";
+      const reasons = [];
+      if (subjectCount < 3) reasons.push("样本量不足");
+      if (usesHba1c.value && Number(row["HbA1c异常评分"] || 0) >= 50) reasons.push("HbA1c下降比例偏离项目整体");
+      if (usesWeight.value && Number(row["体重异常评分"] || 0) >= 50) reasons.push("体重下降值偏离项目整体");
+      if (incompleteScore >= 20) reasons.push("所选指标随访数据不完整");
+      row["风险原因"] = reasons.length ? reasons.join("；") : "未见明显异常";
+      return row;
+    })
+    .sort((a, b) => Number(b["盲态疗效异常风险评分"] || 0) - Number(a["盲态疗效异常风险评分"] || 0) || String(a["中心"]).localeCompare(String(b["中心"]))),
+);
+const blindedEfficacyProjectRows = computed(() =>
+  (state.value?.patient_medical_review?.project_summary || [])
+    .filter((row) => (
+      (usesHba1c.value || !String(row["指标"] || "").includes("HbA1c"))
+      && (usesWeight.value || !String(row["指标"] || "").includes("体重"))
+    ))
+    .map((row) =>
+      row["指标"] === "高风险中心数"
+        ? { ...row, 数值: dynamicBlindedEfficacySiteRows.value.filter((item) => item["风险等级"] === "高").length }
+        : row,
+    ),
+);
+const blindedEfficacyChartRows = computed(() => dynamicBlindedEfficacySiteRows.value.slice(0, 15));
+const screenFailureRows = computed(() => state.value?.patient_medical_review?.screen_failure_summary || []);
+const selectedBlindedSite = ref("");
+const selectedBlindedSitePatients = computed(() =>
+  (state.value?.patient_medical_review?.subject_summary || []).filter((row) => String(row["中心"] || "") === selectedBlindedSite.value),
+);
+const maxBlindedHba1cDrop = computed(() => Math.max(...blindedEfficacyChartRows.value.map((row) => Math.abs(Number(row["HbA1c平均下降比例（%）"] || 0))), 1));
+const maxBlindedWeightDrop = computed(() => Math.max(...blindedEfficacyChartRows.value.map((row) => Math.abs(Number(row["体重平均下降值（kg）"] || 0))), 1));
 const selectedMedicalSubject = computed(() => medicalSubjects.value.find((item) => item.subject_id === selectedMedicalSubjectId.value) || medicalSubjects.value[0] || null);
 const selectedMedicalRecords = computed(() => {
   const subject = selectedMedicalSubject.value?.subject_id;
@@ -201,6 +292,25 @@ function rowValue(row: DataRow, keys: string[]): string | number | boolean | str
   return null;
 }
 
+function blindedRiskClass(row: DataRow): string {
+  const level = String(row["风险等级"] || "");
+  if (level === "高") return "high";
+  if (level === "中") return "medium";
+  if (level === "观察") return "watch";
+  return "low";
+}
+
+function patientInfluenceClass(row: DataRow): string {
+  const level = String(row["影响等级"] || "");
+  if (level === "高") return "high";
+  if (level === "中") return "medium";
+  return "low";
+}
+
+function selectBlindedSite(row: DataRow): void {
+  selectedBlindedSite.value = String(row["中心"] || "");
+}
+
 function normalizeMetricRows(rows: DataRow[] = []): { label: string; value: number }[] {
   return rows.map((row) => ({
     label: String(rowValue(row, ["指标", "鎸囨爣"]) || "-"),
@@ -224,16 +334,6 @@ const maxAeSiteCount = computed(() => Math.max(...aeSiteRows.value.map((row) => 
 const maxSaeSiteCount = computed(() => Math.max(...saeSiteRows.value.map((row) => row.count), 1));
 const maxCriticalSiteCount = computed(() => Math.max(...criticalSiteRows.value.map((row) => row.count), 1));
 
-watch(kriDrilldowns, (items) => {
-  if (!items.length) {
-    activeDrilldownKey.value = "";
-    return;
-  }
-  if (!items.some((item) => item.key === activeDrilldownKey.value)) {
-    activeDrilldownKey.value = items[0].key;
-  }
-});
-
 watch(medicalSubjects, (items) => {
   if (!items.length) {
     selectedMedicalSubjectId.value = "";
@@ -242,6 +342,28 @@ watch(medicalSubjects, (items) => {
   if (!items.some((item) => item.subject_id === selectedMedicalSubjectId.value)) {
     selectedMedicalSubjectId.value = items[0].subject_id;
   }
+});
+
+watch(dynamicBlindedEfficacySiteRows, (items) => {
+  if (!items.length) {
+    selectedBlindedSite.value = "";
+    return;
+  }
+  if (!items.some((item) => String(item["中心"] || "") === selectedBlindedSite.value)) {
+    selectedBlindedSite.value = String(items[0]["中心"] || "");
+  }
+});
+
+watch(selectedEfficacyModel, () => {
+  blindedRiskWeightMessage.value = "已切换疗效指标组合，中心风险评分已自动更新。";
+});
+
+watch(selectedIndication, () => {
+  selectedEfficacyModel.value = "hba1c_weight";
+  selectedBlindedSite.value = "";
+  blindedRiskWeightMessage.value = isConfiguredIndication.value
+    ? "已切换项目适应症，请选择疗效指标组合。"
+    : "当前适应症尚未接入疗效指标解析规则。";
 });
 
 function t(key: string, values: Record<string, string | number> = {}): string {
@@ -262,11 +384,6 @@ function activateTab(tab: TabKey): void {
   activeTab.value = tab;
 }
 
-function setKriEnabled(enabled: boolean): void {
-  kriEnabled.value = enabled;
-  scheduleRefresh();
-}
-
 function cancelUpload(): void {
   if (importingData.value) return;
   uploadPreview.value = null;
@@ -278,54 +395,9 @@ function exportPackage(): void {
   window.location.href = `/api/export?${params.value.toString()}`;
 }
 
-function applyConfig(config: { kri_enabled: boolean; enabled_metrics: string[]; thresholds: Record<string, number> }): void {
-  kriEnabled.value = config.kri_enabled;
-  const enabled = new Set(config.enabled_metrics);
-  thresholds.forEach((item) => {
-    if (Object.prototype.hasOwnProperty.call(config.thresholds, item.key)) {
-      item.value = Number(config.thresholds[item.key]);
-    }
-    item.enabled = enabled.has(item.key);
-  });
-}
-
-async function loadConfig(): Promise<void> {
-  try {
-    const config = await fetchConfig();
-    if (config.active) applyConfig(config.active);
-  } catch (error) {
-    console.error(error);
-    alert(t("alert.configLoad"));
-  }
-}
-
-async function saveConfig(): Promise<void> {
-  if (savingConfig.value) return;
-  savingConfig.value = true;
-  try {
-    const saved = await saveConfigApi(kriEnabled.value, thresholds);
-    if (saved.active) applyConfig(saved.active);
-    await loadState();
-    alert(t("alert.configSave", { version: saved.active.version }));
-  } catch (error) {
-    console.error(error);
-    alert(error instanceof Error ? error.message : t("alert.configSaveFailed"));
-  } finally {
-    savingConfig.value = false;
-  }
-}
-
-function scheduleRefresh(): void {
-  if (settingsRefreshTimer.value !== null) window.clearTimeout(settingsRefreshTimer.value);
-  settingsRefreshTimer.value = window.setTimeout(() => {
-    loadState();
-  }, 240);
-}
-
 async function loadState(): Promise<void> {
   try {
     state.value = await fetchState(params.value);
-    if (!activeDrilldownKey.value && state.value.kri_drilldowns.length) activeDrilldownKey.value = state.value.kri_drilldowns[0].key;
   } catch (error) {
     console.error(error);
     alert(t("alert.load"));
@@ -339,7 +411,6 @@ async function initializeSessionState(): Promise<void> {
     if (previousSession !== session.session_id) {
       state.value = await resetState(params.value);
       localStorage.setItem(sessionStorageKey, session.session_id);
-      activeDrilldownKey.value = "";
       return;
     }
   } catch (error) {
@@ -362,7 +433,6 @@ async function onFilesSelected(files: File[], role: UploadRole): Promise<void> {
     uploadPreview.value = null;
     pendingFiles.value = [];
     pendingSourceRoles.value = {};
-    if (state.value.kri_drilldowns.length) activeDrilldownKey.value = state.value.kri_drilldowns[0].key;
   } catch (error) {
     alert(error instanceof Error ? error.message : t("alert.preview"));
   } finally {
@@ -377,63 +447,6 @@ function onUploadImported(nextState: RbqmState): void {
   pendingSourceRoles.value = {};
 }
 
-function clampThresholdRailWidth(width: number): number {
-  return Math.min(thresholdRailWidth.max, Math.max(thresholdRailWidth.min, Math.round(width)));
-}
-
-function setThresholdRailWidth(width: number, persist = true): void {
-  const workspace = workspaceRef.value;
-  const handle = resizeHandleRef.value;
-  if (!workspace) return;
-  const nextWidth = clampThresholdRailWidth(width);
-  workspace.style.setProperty("--threshold-rail-width", `${nextWidth}px`);
-  if (handle) {
-    handle.setAttribute("aria-valuemin", String(thresholdRailWidth.min));
-    handle.setAttribute("aria-valuemax", String(thresholdRailWidth.max));
-    handle.setAttribute("aria-valuenow", String(nextWidth));
-  }
-  if (persist) localStorage.setItem(thresholdRailWidth.storageKey, String(nextWidth));
-}
-
-function initThresholdRailResize(): void {
-  const workspace = workspaceRef.value;
-  const handle = resizeHandleRef.value;
-  if (!workspace || !handle) return;
-  const savedWidth = Number(localStorage.getItem(thresholdRailWidth.storageKey));
-  setThresholdRailWidth(Number.isFinite(savedWidth) && savedWidth > 0 ? savedWidth : thresholdRailWidth.default, false);
-
-  const widthFromPointer = (clientX: number) => clientX - workspace.getBoundingClientRect().left;
-  const stopResize = () => document.body.classList.remove("threshold-resizing");
-
-  handle.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    handle.setPointerCapture(event.pointerId);
-    document.body.classList.add("threshold-resizing");
-  });
-  handle.addEventListener("pointermove", (event) => {
-    if (document.body.classList.contains("threshold-resizing")) setThresholdRailWidth(widthFromPointer(event.clientX));
-  });
-  handle.addEventListener("pointerup", stopResize);
-  handle.addEventListener("pointercancel", stopResize);
-  handle.addEventListener("dblclick", () => setThresholdRailWidth(thresholdRailWidth.default));
-  handle.addEventListener("keydown", (event) => {
-    const current = Number(handle.getAttribute("aria-valuenow")) || thresholdRailWidth.default;
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      setThresholdRailWidth(current - 16);
-    } else if (event.key === "ArrowRight") {
-      event.preventDefault();
-      setThresholdRailWidth(current + 16);
-    } else if (event.key === "Home") {
-      event.preventDefault();
-      setThresholdRailWidth(thresholdRailWidth.min);
-    } else if (event.key === "End") {
-      event.preventDefault();
-      setThresholdRailWidth(thresholdRailWidth.max);
-    }
-  });
-}
-
 watch(theme, (nextTheme) => {
   document.body.dataset.theme = nextTheme;
 }, { immediate: true });
@@ -446,15 +459,8 @@ watch(sidebarCollapsed, (collapsed) => {
   document.body.classList.toggle("sidebar-collapsed", collapsed);
 });
 
-onMounted(async () => {
-  await nextTick();
-  initThresholdRailResize();
-  await loadConfig();
+onMounted(() => {
   initializeSessionState();
-});
-
-onBeforeUnmount(() => {
-  if (settingsRefreshTimer.value !== null) window.clearTimeout(settingsRefreshTimer.value);
 });
 </script>
 
@@ -474,100 +480,184 @@ onBeforeUnmount(() => {
         :active-tab="activeTab"
         :locale="locale"
         :theme="theme"
-        :saving-config="savingConfig"
         :t="t"
         @change-tab="activateTab"
         @change-locale="setLocale"
         @change-theme="setTheme"
-        @save-config="saveConfig"
       />
 
-      <section ref="workspaceRef" class="workspace" :class="{ 'overview-mode': activeTab !== 'import' }">
-        <aside v-if="activeTab === 'import'" class="threshold-rail">
-          <ThresholdPanel
-            :kri-enabled="kriEnabled"
-            :thresholds="thresholds"
-            :locale="locale"
-            :t="t"
-            @update-kri-enabled="setKriEnabled"
-            @threshold-changed="scheduleRefresh"
-          />
-        </aside>
-        <div
-          v-if="activeTab === 'import'"
-          ref="resizeHandleRef"
-          class="threshold-resize-handle"
-          role="separator"
-          aria-label="调整KRI阈值设置列宽"
-          aria-orientation="vertical"
-          tabindex="0"
-        ></div>
-
+      <section class="workspace overview-mode">
         <section class="content">
           <section class="tab-page" :class="{ active: activeTab === 'import' }">
             <h1>{{ t("pages.import") }}</h1>
-            <div class="source-note">数据源：进展报告</div>
-            <div v-if="!hasProgressReport" class="data-card">
-              <div class="mapping-empty">请先导入进展报告，导入后展示风险阈值图表和明细列表。</div>
-            </div>
-            <template v-else>
-            <div class="info-banner">
-              <IconSvg name="info" />
-              <span>{{ dataHint }} 选择左侧上传入口后会自动导入；点击下方指标查看中心图和明细列表。</span>
-            </div>
 
-            <section class="drilldown-panel">
-              <div v-if="kriDrilldowns.length" class="drilldown-tabs">
-                <button
-                  v-for="item in kriDrilldowns"
-                  :key="item.key"
-                  type="button"
-                  class="drilldown-tab"
-                  :class="{ active: activeDrilldown?.key === item.key }"
-                  @click="activeDrilldownKey = item.key"
-                >
-                  {{ item.label }}
-                </button>
+            <section class="project-risk-thresholds">
+              <h2>项目风险阈值</h2>
+              <div class="source-note">数据源：Form Excel（临床研究数据）</div>
+              <div class="data-card efficacy-model-card">
+                <div class="card-title">疗效指标配置</div>
+                <div class="efficacy-model-body">
+                  <p class="medical-subtitle">先选择项目适应症，再选择参与中心风险评分的疗效指标组合。当前已接入糖尿病项目的 HbA1c 和体重，其他适应症可按项目方案继续扩展。</p>
+                  <div class="efficacy-model-fields">
+                    <label class="efficacy-model-select">
+                      <span><b>01</b>项目适应症</span>
+                      <select v-model="selectedIndication">
+                        <option v-for="option in indicationOptions" :key="option.value" :value="option.value">
+                          {{ option.label }}
+                        </option>
+                      </select>
+                    </label>
+                    <label class="efficacy-model-select">
+                      <span><b>02</b>疗效指标组合</span>
+                      <select v-model="selectedEfficacyModel" :disabled="!isConfiguredIndication">
+                        <option v-if="!isConfiguredIndication" value="hba1c_weight">请先配置该适应症的疗效指标</option>
+                        <option v-for="option in isConfiguredIndication ? efficacyModelOptions : []" :key="option.value" :value="option.value">
+                          {{ option.label }}
+                        </option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
               </div>
-              <div v-else class="data-card">
-                <div class="mapping-empty">KRI阈值评分已关闭或暂无启用指标</div>
+              <div v-if="!isConfiguredIndication" class="data-card">
+                <div class="mapping-empty">{{ selectedIndicationConfig.label }} 尚未接入疗效指标解析规则。建议根据项目方案配置主要终点、辅助终点、变化方向、单位和中心异常评分权重。</div>
               </div>
-
-              <div v-if="activeDrilldown" class="drilldown-grid">
-                <div class="data-card drilldown-chart-card">
-                  <div class="card-title">{{ activeDrilldown.label }} / 各中心</div>
-                  <div class="center-chart">
-                    <div class="threshold-note">按阈值 {{ activeDrilldown.threshold }}{{ activeDrilldown.unit }}统计超阈值总条数</div>
-                    <div v-for="row in activeDrilldown.center_rows.slice(0, 30)" :key="String(row['中心'])" class="center-bar-row">
-                      <div class="center-bar-label">{{ row["中心"] }}</div>
-                      <div class="center-bar-track">
-                        <div
-                          class="center-bar-fill"
-                          :class="{ over: Number(row['超阈值条数'] || 0) > 0 }"
-                          :style="{ width: `${Math.max(2, (Number(row['超阈值条数'] || 0) / maxDrilldownValue) * 100)}%` }"
-                        ></div>
-                      </div>
-                      <div class="center-bar-value">{{ row["超阈值条数"] }}</div>
+              <div v-else-if="!hasClinicalData" class="data-card">
+                <div class="mapping-empty">请先导入Form Excel/临床研究数据，导入后展示盲态疗效风险阈值和中心筛败率。</div>
+              </div>
+              <template v-else>
+                <div class="data-card">
+                  <div class="card-title">盲态中心疗效异常风险</div>
+                  <p class="medical-subtitle">仅按中心汇总已选择疗效指标的相对基线变化，不展示试验组、对照组或剂量组。风险评分用于识别偏离项目整体或数据不完整的中心，不代表疗效优劣。</p>
+                  <div class="metric-grid blinded-summary-grid">
+                    <div v-for="row in blindedEfficacyProjectRows" :key="String(row['指标'])" class="metric-card">
+                      <div class="metric-label">{{ row["指标"] }}</div>
+                      <div class="metric-value">{{ row["数值"] }}</div>
                     </div>
+                  </div>
+                  <div class="blinded-chart-grid">
+                    <div class="blinded-chart-panel">
+                      <div class="chart-section-title">中心风险评分 Top 15</div>
+                      <div class="center-chart blinded-risk-chart">
+                        <div
+                          v-for="row in blindedEfficacyChartRows"
+                          :key="String(row['中心'])"
+                          class="center-bar-row clickable-chart-row"
+                          :class="{ selected: selectedBlindedSite === String(row['中心']) }"
+                          role="button"
+                          tabindex="0"
+                          @click="selectBlindedSite(row)"
+                          @keydown.enter="selectBlindedSite(row)"
+                        >
+                          <div class="center-bar-label">{{ row["中心"] }}</div>
+                          <div class="center-bar-track">
+                            <div class="center-bar-fill risk-score-fill" :class="blindedRiskClass(row)" :style="{ width: `${Math.max(2, Number(row['盲态疗效异常风险评分'] || 0))}%` }"></div>
+                          </div>
+                          <div class="center-bar-value">{{ row["盲态疗效异常风险评分"] }} · {{ row["风险等级"] }}</div>
+                        </div>
+                      </div>
+                      <div class="risk-formula-panel">
+                        <div class="risk-formula-title">动态计算方法</div>
+                        <code>{{ blindedRiskFormula }}</code>
+                        <p>填写当前显示的权重并点击“确定计算”。系统会按合计值自动归一化，并更新 Top 15 中心和风险等级。</p>
+                        <label v-if="usesHba1c" class="risk-weight-control">
+                          <span>HbA1c异常</span>
+                          <input v-model.number="blindedRiskWeightInputs.hba1c" type="number" min="0" step="1" />
+                          <strong>应用 {{ Math.round(normalizedBlindedRiskWeights.hba1c * 100) }}%</strong>
+                        </label>
+                        <label v-if="usesWeight" class="risk-weight-control">
+                          <span>体重异常</span>
+                          <input v-model.number="blindedRiskWeightInputs.weight" type="number" min="0" step="1" />
+                          <strong>应用 {{ Math.round(normalizedBlindedRiskWeights.weight * 100) }}%</strong>
+                        </label>
+                        <label class="risk-weight-control">
+                          <span>数据不完整</span>
+                          <input v-model.number="blindedRiskWeightInputs.incomplete" type="number" min="0" step="1" />
+                          <strong>应用 {{ Math.round(normalizedBlindedRiskWeights.incomplete * 100) }}%</strong>
+                        </label>
+                        <div class="risk-weight-actions">
+                          <button type="button" class="risk-weight-apply" @click="applyBlindedRiskWeights">确定计算</button>
+                          <span>{{ blindedRiskWeightMessage }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="blinded-chart-panel">
+                      <div class="chart-section-title">中心疗效变化 Top 15</div>
+                      <div class="center-chart blinded-efficacy-chart">
+                        <div
+                          v-for="row in blindedEfficacyChartRows"
+                          :key="String(row['中心'])"
+                          class="blinded-efficacy-row clickable-chart-row"
+                          :class="{ selected: selectedBlindedSite === String(row['中心']) }"
+                          role="button"
+                          tabindex="0"
+                          @click="selectBlindedSite(row)"
+                          @keydown.enter="selectBlindedSite(row)"
+                        >
+                          <div class="center-bar-label">{{ row["中心"] }}</div>
+                          <div class="efficacy-bars">
+                            <div v-if="usesHba1c" class="efficacy-bar-line">
+                              <span>HbA1c</span>
+                              <div class="center-bar-track"><div class="center-bar-fill hba1c-fill" :style="{ width: `${Math.max(2, (Math.abs(Number(row['HbA1c平均下降比例（%）'] || 0)) / maxBlindedHba1cDrop) * 100)}%` }"></div></div>
+                              <strong>{{ row["HbA1c平均下降比例（%）"] }}%</strong>
+                            </div>
+                            <div v-if="usesWeight" class="efficacy-bar-line">
+                              <span>体重</span>
+                              <div class="center-bar-track"><div class="center-bar-fill weight-fill" :style="{ width: `${Math.max(2, (Math.abs(Number(row['体重平均下降值（kg）'] || 0)) / maxBlindedWeightDrop) * 100)}%` }"></div></div>
+                              <strong>{{ row["体重平均下降值（kg）"] }}kg</strong>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-if="selectedBlindedSite" class="blinded-patient-panel">
+                    <div class="chart-section-title">中心 {{ selectedBlindedSite }} / 患者疗效影响明细</div>
+                    <p class="medical-subtitle">高亮患者对该中心盲态疗效异常影响较大。</p>
+                    <div class="table-wrap blinded-patient-table-wrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>受试者</th>
+                            <th v-if="usesHba1c">HbA1c下降比例</th>
+                            <th v-if="usesWeight">体重下降值</th>
+                            <th>影响评分</th>
+                            <th>影响等级</th>
+                            <th>影响原因</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr
+                            v-for="row in selectedBlindedSitePatients"
+                            :key="String(row['受试者'])"
+                            class="influential-patient-row"
+                            :class="patientInfluenceClass(row)"
+                          >
+                            <td>{{ row["受试者"] }}</td>
+                            <td v-if="usesHba1c" class="number">{{ row["HbA1c下降比例（%）"] ?? "-" }}%</td>
+                            <td v-if="usesWeight" class="number">{{ row["体重下降值（kg）"] ?? "-" }}kg</td>
+                            <td class="number">{{ row["患者影响评分"] }}</td>
+                            <td>{{ row["影响等级"] }}</td>
+                            <td>{{ row["影响原因"] }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div class="table-wrap">
+                    <DataTable :rows="dynamicBlindedEfficacySiteRows" :limit="30" :empty-text="t('empty')" />
                   </div>
                 </div>
 
                 <div class="data-card">
-                  <div class="card-title">中心汇总</div>
-                  <div class="table-wrap drilldown-table-wrap">
-                    <DataTable :rows="activeDrilldown.center_rows" :limit="30" :empty-text="t('empty')" />
+                  <div class="card-title">中心筛败率</div>
+                  <p class="medical-subtitle">筛选失败患者不纳入盲态疗效分析。筛败率单独用于识别入排标准执行、招募人群匹配度和筛选流程异常。</p>
+                  <div class="table-wrap">
+                    <DataTable :rows="screenFailureRows" :limit="30" :empty-text="t('empty')" />
                   </div>
                 </div>
-              </div>
-
-              <div v-if="activeDrilldown" class="data-card">
-                <div class="card-title">{{ activeDrilldown.label }} / 明细列表</div>
-                <div class="table-wrap">
-                  <DataTable :rows="activeDrilldown.details" :limit="100" :empty-text="t('empty')" />
-                </div>
-              </div>
+              </template>
             </section>
-            </template>
           </section>
 
           <section class="tab-page" :class="{ active: activeTab === 'overview' }">

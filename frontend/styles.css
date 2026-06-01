@@ -1285,6 +1285,297 @@ th.number {
   font-variant-numeric: tabular-nums;
 }
 
+.blinded-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 0 22px 18px;
+}
+
+.blinded-chart-panel {
+  overflow: hidden;
+  border: 1px solid #e1e8f4;
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.chart-section-title {
+  padding: 14px 18px 0;
+  color: #071329;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.blinded-risk-chart .center-bar-row {
+  grid-template-columns: 46px minmax(120px, 1fr) 92px;
+}
+
+.risk-score-fill.high {
+  background: #d92d20;
+}
+
+.risk-score-fill.medium {
+  background: #f79009;
+}
+
+.risk-score-fill.low {
+  background: #14b8a6;
+}
+
+.risk-score-fill.watch {
+  background: #7a5af8;
+}
+
+.risk-formula-panel {
+  display: grid;
+  gap: 9px;
+  margin: 0 18px 18px;
+  padding: 14px;
+  border: 1px solid #d8e3f3;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.project-risk-thresholds h2 {
+  margin: 0 0 6px;
+  color: #071329;
+  font-size: 18px;
+}
+
+.efficacy-model-card {
+  overflow: hidden;
+}
+
+.efficacy-model-body {
+  padding: 16px 20px 20px;
+}
+
+.efficacy-model-body .medical-subtitle {
+  margin: 0;
+  max-width: none;
+}
+
+.efficacy-model-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.efficacy-model-select {
+  display: grid;
+  gap: 9px;
+  padding: 13px 14px 14px;
+  border: 1px solid #d8e3f3;
+  border-radius: 9px;
+  background: #f8fbff;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.efficacy-model-select span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.efficacy-model-select b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 20px;
+  border-radius: 10px;
+  color: #0b5fc7;
+  background: #e5f0ff;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.efficacy-model-select select {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 9px 10px;
+  color: #1e293b;
+  background: #ffffff;
+}
+
+.efficacy-model-select select:disabled {
+  color: #98a2b3;
+  background: #f2f4f7;
+  cursor: not-allowed;
+}
+
+.risk-formula-title {
+  color: #071329;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.risk-formula-panel code {
+  color: #0b5fc7;
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: normal;
+}
+
+.risk-formula-panel p {
+  margin: 0;
+  color: #667085;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.risk-weight-control {
+  display: grid;
+  grid-template-columns: 76px minmax(80px, 120px) 88px;
+  gap: 8px;
+  align-items: center;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.risk-weight-control input[type="number"] {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: #1e293b;
+  background: #ffffff;
+}
+
+.risk-weight-control strong {
+  color: #0b5fc7;
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.risk-weight-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #667085;
+  font-size: 11px;
+}
+
+.risk-weight-apply {
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 14px;
+  color: #ffffff;
+  background: #0b5fc7;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.risk-weight-apply:hover {
+  background: #094f9f;
+}
+
+.blinded-efficacy-chart {
+  gap: 12px;
+}
+
+.blinded-efficacy-row {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.efficacy-bars {
+  display: grid;
+  gap: 5px;
+}
+
+.efficacy-bar-line {
+  display: grid;
+  grid-template-columns: 46px minmax(80px, 1fr) 58px;
+  gap: 7px;
+  align-items: center;
+  color: #667085;
+  font-size: 11px;
+}
+
+.efficacy-bar-line strong {
+  color: #344054;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.hba1c-fill {
+  background: #0b66e4;
+}
+
+.weight-fill {
+  background: #14b8a6;
+}
+
+.clickable-chart-row {
+  margin: -4px;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.clickable-chart-row:hover,
+.clickable-chart-row:focus-visible {
+  outline: none;
+  background: #eef4ff;
+}
+
+.clickable-chart-row.selected {
+  background: #e8f1ff;
+  box-shadow: inset 0 0 0 1px #b8cdfb;
+}
+
+.blinded-patient-panel {
+  margin: 0 22px 18px;
+  overflow: hidden;
+  border: 1px solid #d8e3f3;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.blinded-patient-panel .medical-subtitle {
+  padding: 0 18px;
+}
+
+.blinded-patient-table-wrap {
+  max-height: 320px;
+}
+
+.influential-patient-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.influential-patient-row:hover {
+  background: #eef4ff;
+}
+
+.influential-patient-row.high {
+  background: #fff1f0;
+}
+
+.influential-patient-row.high:hover {
+  background: #ffe4e1;
+}
+
+.influential-patient-row.medium {
+  background: #fff8eb;
+}
+
+.influential-patient-row.medium:hover {
+  background: #ffefce;
+}
+
 .drilldown-table-wrap {
   max-height: 420px;
 }
@@ -2009,6 +2300,28 @@ body[data-theme="dark"] th {
   background: #162033;
 }
 
+body[data-theme="dark"] .efficacy-model-select {
+  border-color: #26344f;
+  background: #0f172a;
+  color: #e5edf8;
+}
+
+body[data-theme="dark"] .efficacy-model-select b {
+  color: #8ec5ff;
+  background: #18345c;
+}
+
+body[data-theme="dark"] .efficacy-model-select select {
+  border-color: #344563;
+  color: #e5edf8;
+  background: #111827;
+}
+
+body[data-theme="dark"] .efficacy-model-select select:disabled {
+  color: #7f8da3;
+  background: #162033;
+}
+
 body[data-theme="dark"] .wizard-steps,
 body[data-theme="dark"] .mapping-row select,
 body[data-theme="dark"] .field-map-row select,
@@ -2180,6 +2493,45 @@ body[data-theme="dark"] .center-bar-track {
   background: #1c2b46;
 }
 
+body[data-theme="dark"] .blinded-chart-panel {
+  border-color: #26344f;
+  background: #111827;
+}
+
+body[data-theme="dark"] .chart-section-title,
+body[data-theme="dark"] .efficacy-bar-line strong {
+  color: #e5edf8;
+}
+
+body[data-theme="dark"] .risk-formula-panel {
+  border-color: #26344f;
+  background: #111827;
+}
+
+body[data-theme="dark"] .risk-formula-title,
+body[data-theme="dark"] .risk-weight-control {
+  color: #e5edf8;
+}
+
+body[data-theme="dark"] .clickable-chart-row:hover,
+body[data-theme="dark"] .clickable-chart-row:focus-visible,
+body[data-theme="dark"] .clickable-chart-row.selected {
+  background: #182842;
+}
+
+body[data-theme="dark"] .blinded-patient-panel {
+  border-color: #26344f;
+  background: #111827;
+}
+
+body[data-theme="dark"] .influential-patient-row.high {
+  background: #3a1d24;
+}
+
+body[data-theme="dark"] .influential-patient-row.medium {
+  background: #352b1c;
+}
+
 body[data-theme="dark"] .site-stack-track {
   background: #1c2b46;
 }
@@ -2269,7 +2621,9 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   }
 
   .medical-chart-grid,
-  .medical-selector-card {
+  .blinded-chart-grid,
+  .medical-selector-card,
+  .efficacy-model-fields {
     grid-template-columns: 1fr;
   }
 }

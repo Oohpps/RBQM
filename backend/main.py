@@ -337,9 +337,216 @@ def medical_value_records(raw_tables: dict[str, pd.DataFrame], metric: str) -> l
     return rows
 
 
+def mean_or_zero(values: list[float]) -> float:
+    return float(pd.Series(values, dtype="float64").mean()) if values else 0.0
+
+
+def is_screen_failure_status(value: Any) -> bool:
+    text = str(clean_value(value) or "").strip().lower().replace("_", " ").replace("-", " ")
+    return any(token in text for token in ["筛选失败", "筛败", "screen fail", "screening fail"])
+
+
+def formexcel_subject_statuses(raw_tables: dict[str, pd.DataFrame]) -> dict[str, dict[str, str]]:
+    subjects: dict[str, dict[str, str]] = {}
+    for df in raw_tables.values():
+        if df.empty:
+            continue
+        work = standardize_columns(df)
+        subject_col = find_col(work, ["参与者筛选号", "受试者编号", "subject_id", "subject", "participant"])
+        site_col = find_col(work, ["试验中心编号", "中心编号", "site_id", "site"])
+        status_col = find_col(work, ["受试者状态", "subject_status", "status", "状态"])
+        if not subject_col or not status_col:
+            continue
+        for _, row in work.iterrows():
+            subject = clean_identifier(row.get(subject_col))
+            if not subject:
+                continue
+            site = clean_site_identifier(row.get(site_col)) if site_col else ""
+            status = str(clean_value(row.get(status_col)) or "")
+            current = subjects.setdefault(subject, {"site_id": site, "subject_status": status})
+            if not current.get("site_id") and site:
+                current["site_id"] = site
+            if status and (not current.get("subject_status") or is_screen_failure_status(status)):
+                current["subject_status"] = status
+    return subjects
+
+
+def blinded_efficacy_review(records: list[dict[str, Any]], subject_statuses: dict[str, dict[str, str]] | None = None) -> dict[str, Any]:
+    subject_statuses = dict(subject_statuses or {})
+    for row in records:
+        subject = str(row.get("subject_id") or "")
+        if not subject:
+            continue
+        current = subject_statuses.setdefault(subject, {"site_id": str(row.get("site_id") or ""), "subject_status": str(row.get("subject_status") or "")})
+        if not current.get("site_id") and row.get("site_id"):
+            current["site_id"] = str(row["site_id"])
+        if not current.get("subject_status") and row.get("subject_status"):
+            current["subject_status"] = str(row["subject_status"])
+
+    screen_failure_rows: list[dict[str, Any]] = []
+    status_sites = sorted({str(item.get("site_id") or "") for item in subject_statuses.values() if item.get("site_id")})
+    for site in status_sites:
+        screened = [item for item in subject_statuses.values() if str(item.get("site_id") or "") == site]
+        failed = [item for item in screened if is_screen_failure_status(item.get("subject_status"))]
+        screen_failure_rows.append({
+            "中心": site,
+            "已筛选人数": len(screened),
+            "筛选失败人数": len(failed),
+            "中心筛败率（%）": round(len(failed) / len(screened) * 100, 2) if screened else 0.0,
+        })
+    screen_failure_rows.sort(key=lambda row: (-float(row["中心筛败率（%）"]), str(row["中心"])))
+
+    by_subject_metric: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    subject_sites: dict[str, str] = {}
+    for row in records:
+        subject = str(row.get("subject_id") or "")
+        metric = str(row.get("metric") or "")
+        site = str(row.get("site_id") or "")
+        if not subject or metric not in {"hba1c", "weight"} or is_screen_failure_status(subject_statuses.get(subject, {}).get("subject_status")):
+            continue
+        subject_sites.setdefault(subject, site)
+        by_subject_metric.setdefault((subject, metric), []).append(row)
+
+    subject_changes: dict[str, dict[str, float | str]] = {}
+    for subject, site in subject_sites.items():
+        changes: dict[str, float | str] = {"site_id": site}
+        for metric in ("hba1c", "weight"):
+            metric_records = sorted(
+                by_subject_metric.get((subject, metric), []),
+                key=lambda row: (int(row.get("day") or 0), str(row.get("date") or ""), str(row.get("visit") or "")),
+            )
+            if len(metric_records) < 2:
+                continue
+            baseline = float(metric_records[0]["value"])
+            latest = float(metric_records[-1]["value"])
+            if metric == "hba1c":
+                changes["hba1c_drop_points"] = baseline - latest
+                changes["hba1c_drop_pct"] = ((baseline - latest) / baseline * 100) if baseline else 0.0
+            else:
+                changes["weight_drop_kg"] = baseline - latest
+        subject_changes[subject] = changes
+
+    site_rows: list[dict[str, Any]] = []
+    sites = sorted({site for site in subject_sites.values() if site})
+    for site in sites:
+        site_subjects = [subject for subject, subject_site in subject_sites.items() if subject_site == site]
+        changes = [subject_changes.get(subject, {}) for subject in site_subjects]
+        hba1c_points = [float(item["hba1c_drop_points"]) for item in changes if "hba1c_drop_points" in item]
+        hba1c_pct = [float(item["hba1c_drop_pct"]) for item in changes if "hba1c_drop_pct" in item]
+        weight_kg = [float(item["weight_drop_kg"]) for item in changes if "weight_drop_kg" in item]
+        fully_evaluable = sum("hba1c_drop_pct" in item and "weight_drop_kg" in item for item in changes)
+        incomplete_rate = 1 - (fully_evaluable / len(site_subjects)) if site_subjects else 0.0
+        site_rows.append({
+            "中心": site,
+            "受试者数": len(site_subjects),
+            "HbA1c可评估人数": len(hba1c_pct),
+            "HbA1c平均下降值（百分点）": round(mean_or_zero(hba1c_points), 3),
+            "HbA1c平均下降比例（%）": round(mean_or_zero(hba1c_pct), 2),
+            "体重可评估人数": len(weight_kg),
+            "体重平均下降值（kg）": round(mean_or_zero(weight_kg), 3),
+            "配对数据不完整率（%）": round(incomplete_rate * 100, 2),
+        })
+
+    def project_values(key: str, evaluable_key: str) -> list[float]:
+        return [float(row[key]) for row in site_rows if int(row[evaluable_key]) >= 3]
+
+    hba1c_values = project_values("HbA1c平均下降比例（%）", "HbA1c可评估人数")
+    weight_values = project_values("体重平均下降值（kg）", "体重可评估人数")
+    hba1c_mean, hba1c_std = mean_or_zero(hba1c_values), float(pd.Series(hba1c_values, dtype="float64").std(ddof=0)) if hba1c_values else 0.0
+    weight_mean, weight_std = mean_or_zero(weight_values), float(pd.Series(weight_values, dtype="float64").std(ddof=0)) if weight_values else 0.0
+
+    def deviation_score(value: float, mean: float, std: float) -> float:
+        return min(abs(value - mean) / std / 2 * 100, 100) if std > 0 else 0.0
+
+    subject_hba1c_values = [float(item["hba1c_drop_pct"]) for item in subject_changes.values() if "hba1c_drop_pct" in item]
+    subject_weight_values = [float(item["weight_drop_kg"]) for item in subject_changes.values() if "weight_drop_kg" in item]
+    subject_hba1c_mean = mean_or_zero(subject_hba1c_values)
+    subject_weight_mean = mean_or_zero(subject_weight_values)
+    subject_hba1c_std = float(pd.Series(subject_hba1c_values, dtype="float64").std(ddof=0)) if subject_hba1c_values else 0.0
+    subject_weight_std = float(pd.Series(subject_weight_values, dtype="float64").std(ddof=0)) if subject_weight_values else 0.0
+    subject_rows: list[dict[str, Any]] = []
+    for subject, changes in subject_changes.items():
+        has_hba1c = "hba1c_drop_pct" in changes
+        has_weight = "weight_drop_kg" in changes
+        hba1c_score = deviation_score(float(changes["hba1c_drop_pct"]), subject_hba1c_mean, subject_hba1c_std) if has_hba1c else 100.0
+        weight_score = deviation_score(float(changes["weight_drop_kg"]), subject_weight_mean, subject_weight_std) if has_weight else 100.0
+        incomplete_score = 0.0 if has_hba1c and has_weight else 100.0
+        influence_score = round(0.45 * hba1c_score + 0.35 * weight_score + 0.20 * incomplete_score, 1)
+        if influence_score >= 70:
+            influence_level = "高"
+        elif influence_score >= 40:
+            influence_level = "中"
+        else:
+            influence_level = "低"
+        reasons: list[str] = []
+        if not has_hba1c:
+            reasons.append("缺少可配对HbA1c随访")
+        elif hba1c_score >= 50:
+            reasons.append("HbA1c下降比例偏离项目患者分布")
+        if not has_weight:
+            reasons.append("缺少可配对体重随访")
+        elif weight_score >= 50:
+            reasons.append("体重下降值偏离项目患者分布")
+        subject_rows.append({
+            "中心": changes["site_id"],
+            "受试者": subject,
+            "HbA1c下降值（百分点）": round(float(changes["hba1c_drop_points"]), 3) if "hba1c_drop_points" in changes else None,
+            "HbA1c下降比例（%）": round(float(changes["hba1c_drop_pct"]), 2) if has_hba1c else None,
+            "体重下降值（kg）": round(float(changes["weight_drop_kg"]), 3) if has_weight else None,
+            "患者影响评分": influence_score,
+            "影响等级": influence_level,
+            "影响原因": "；".join(reasons) if reasons else "未见明显异常",
+        })
+    subject_rows.sort(key=lambda row: (str(row["中心"]), -float(row["患者影响评分"]), str(row["受试者"])))
+
+    for row in site_rows:
+        enough_hba1c = int(row["HbA1c可评估人数"]) >= 3
+        enough_weight = int(row["体重可评估人数"]) >= 3
+        hba1c_score = deviation_score(float(row["HbA1c平均下降比例（%）"]), hba1c_mean, hba1c_std) if enough_hba1c else 0.0
+        weight_score = deviation_score(float(row["体重平均下降值（kg）"]), weight_mean, weight_std) if enough_weight else 0.0
+        incomplete_score = min(float(row["配对数据不完整率（%）"]), 100.0)
+        risk_score = round(0.4 * hba1c_score + 0.3 * weight_score + 0.3 * incomplete_score, 1)
+        if int(row["受试者数"]) < 3:
+            risk_level = "观察"
+        elif risk_score >= 70:
+            risk_level = "高"
+        elif risk_score >= 40:
+            risk_level = "中"
+        else:
+            risk_level = "低"
+        reasons: list[str] = []
+        if int(row["受试者数"]) < 3:
+            reasons.append("样本量不足")
+        if hba1c_score >= 50:
+            reasons.append("HbA1c下降比例偏离项目整体")
+        if weight_score >= 50:
+            reasons.append("体重下降值偏离项目整体")
+        if incomplete_score >= 20:
+            reasons.append("配对随访数据不完整")
+        row["盲态疗效异常风险评分"] = risk_score
+        row["HbA1c异常评分"] = round(hba1c_score, 1)
+        row["体重异常评分"] = round(weight_score, 1)
+        row["数据不完整评分"] = round(incomplete_score, 1)
+        row["风险等级"] = risk_level
+        row["风险原因"] = "；".join(reasons) if reasons else "未见明显异常"
+
+    site_rows.sort(key=lambda row: (-float(row["盲态疗效异常风险评分"]), str(row["中心"])))
+    project_summary = [
+        {"指标": "中心数", "数值": len(site_rows)},
+        {"指标": "HbA1c中心平均下降比例（%）", "数值": round(hba1c_mean, 2)},
+        {"指标": "体重中心平均下降值（kg）", "数值": round(weight_mean, 3)},
+        {"指标": "高风险中心数", "数值": sum(row["风险等级"] == "高" for row in site_rows)},
+    ]
+    return {"site_summary": site_rows, "project_summary": project_summary, "subject_summary": subject_rows, "screen_failure_summary": screen_failure_rows}
+
+
 def patient_medical_review(raw_tables: dict[str, pd.DataFrame]) -> dict[str, Any]:
+    subject_statuses = formexcel_subject_statuses(raw_tables)
     records = medical_value_records(raw_tables, "hba1c") + medical_value_records(raw_tables, "weight")
-    records = [row for row in records if row["subject_id"]]
+    records = [
+        row for row in records
+        if row["subject_id"] and not is_screen_failure_status(subject_statuses.get(str(row["subject_id"]), {}).get("subject_status", row.get("subject_status")))
+    ]
     records.sort(key=lambda row: (row["subject_id"], row["metric"], row["date"], row["visit"]))
     first_by_subject: dict[str, dict[str, Any]] = {}
     for row in records:
@@ -369,7 +576,7 @@ def patient_medical_review(raw_tables: dict[str, pd.DataFrame]) -> dict[str, Any
             str(item.get("subject_id") or ""),
         ),
     )
-    return {"subjects": subjects, "records": records}
+    return {"subjects": subjects, "records": records, **blinded_efficacy_review(records, subject_statuses)}
 
 
 def is_yes_value(value: Any) -> bool:

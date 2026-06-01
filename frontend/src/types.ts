@@ -83,6 +83,10 @@ export interface PatientMedicalRecord {
 export interface PatientMedicalReview {
   subjects: PatientMedicalSubject[];
   records: PatientMedicalRecord[];
+  site_summary: DataRow[];
+  project_summary: DataRow[];
+  subject_summary: DataRow[];
+  screen_failure_summary: DataRow[];
 }
 
 export interface AeEventReview {
